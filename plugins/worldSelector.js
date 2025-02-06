@@ -17,7 +17,12 @@ async function fetchWorlds() {
               const link = row.querySelector("a");
 
               if (imgEl && !link) {
-                  currentFlagSrc = imgEl.getAttribute("src");
+                  // Extract flag source and ensure it has the correct URL
+                  let flagSrc = imgEl.getAttribute("src");
+                  if (flagSrc && !flagSrc.startsWith("http")) {
+                      flagSrc = `https://2004.lostcity.rs${flagSrc}`;
+                  }
+                  currentFlagSrc = flagSrc;
                   return;
               }
 
@@ -36,7 +41,7 @@ async function fetchWorlds() {
                   }
 
                   worlds.push({
-                      flagSrc: currentFlagSrc || "",
+                      flagSrc: currentFlagSrc || "", // Attach the last seen flag source
                       world: worldNumber,
                       players,
                   });
@@ -51,6 +56,14 @@ async function fetchWorlds() {
   }
 }
 
+function getCurrentWorld() {
+  return localStorage.getItem("currentWorld") || null;
+}
+
+function setCurrentWorld(world) {
+  localStorage.setItem("currentWorld", world);
+}
+
 async function createWorldSelector() {
   const container = document.createElement("div");
   container.id = "world-selector";
@@ -63,31 +76,63 @@ async function createWorldSelector() {
 
   const table = document.createElement("table");
   table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+  table.style.textAlign = "left";
+
+  const headers = ["🏳️", "🌐", "🧍‍♂️"];
+  const headerRow = document.createElement("tr");
+
+  headers.forEach(text => {
+      const th = document.createElement("th");
+      th.textContent = text;
+      th.style.cursor = "pointer";
+      th.style.padding = "8px";
+      th.style.borderBottom = "2px solid #ccc";
+      headerRow.appendChild(th);
+  });
+
+  table.appendChild(headerRow);
 
   const tableBody = document.createElement("tbody");
   worlds.forEach(({ flagSrc, world, players }) => {
       const row = document.createElement("tr");
 
+      // Flag Cell
       const flagCell = document.createElement("td");
       if (flagSrc) {
           const img = document.createElement("img");
           img.src = flagSrc;
           img.style.width = "20px";
+          img.style.height = "15px";
           flagCell.appendChild(img);
       }
       row.appendChild(flagCell);
 
+      // World Cell
       const worldCell = document.createElement("td");
       const worldLink = document.createElement("a");
       worldLink.textContent = `World ${world}`;
       worldLink.href = "#";
+
+      if (getCurrentWorld() === String(world)) {
+          worldLink.textContent += " (Current)";
+          worldLink.style.color = "green";
+          worldLink.style.fontWeight = "bold";
+      }
+
       worldLink.addEventListener("click", (event) => {
-          event.preventDefault(); // Prevent opening inside plugin panel
+          event.preventDefault();
+          setCurrentWorld(world);
           window.electronAPI.changeWorld(`https://w${world}-2004.lostcity.rs/rs2.cgi`);
+          createWorldSelector().then(updatedContent => {
+              container.replaceWith(updatedContent);
+          });
       });
+
       worldCell.appendChild(worldLink);
       row.appendChild(worldCell);
 
+      // Players Count
       const playersCell = document.createElement("td");
       playersCell.textContent = players;
       row.appendChild(playersCell);
@@ -103,10 +148,10 @@ async function createWorldSelector() {
 
 if (typeof window !== "undefined") {
   window.worldSelector = function () {
-    return {
-        name: "World Selector",
-        icon: "🌍",
-        createContent: createWorldSelector
-    };
+      return {
+          name: "World Selector",
+          icon: "🌍", // ✅ Ensures correct icon appears
+          createContent: createWorldSelector
+      };
   };
 }

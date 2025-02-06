@@ -4,6 +4,7 @@ const fs = require("fs");
 const { updatePlugins } = require(path.join(__dirname, "pluginUpdater"));
 
 let mainWindow;
+let gameView;  // ✅ Declare gameView globally
 const PLUGIN_DIR = path.join(__dirname, "plugins");
 
 if (!fs.existsSync(PLUGIN_DIR)) {
@@ -19,7 +20,7 @@ async function loadAllPlugins() {
 
   plugins = pluginFiles.map(file => ({
       name: file.replace(".js", ""),
-      icon: "🔌" // Default icon; will be overridden in renderer if needed
+      icon: "🔌" // Default icon
   }));
 
   console.log("Sending plugins to renderer:", plugins);
@@ -29,14 +30,18 @@ async function loadAllPlugins() {
   }
 }
 
-// ✅ FIX: Add this missing IPC handler
+// ✅ Fix: Ensure the IPC handler is registered before any requests
 ipcMain.handle("get-plugins", async () => plugins);
 
+// ✅ Fix: Ensure gameView is available before calling it
 ipcMain.on("changeWorld", (_, url) => {
-  console.log(`Changing game view to: ${url}`);
-  gameView.webContents.loadURL(url);
+  if (gameView) {
+    console.log(`Changing game view to: ${url}`);
+    gameView.webContents.loadURL(url);
+  } else {
+    console.error("Error: gameView is not initialized.");
+  }
 });
-
 
 app.whenReady().then(async () => {
   await updatePlugins(); // Auto-update plugins on startup
@@ -52,7 +57,7 @@ app.whenReady().then(async () => {
     }
   });
 
-  const gameView = new BrowserView({
+  gameView = new BrowserView({  // ✅ Assign gameView in the right place
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true
@@ -81,5 +86,5 @@ app.whenReady().then(async () => {
     pluginPanel.setBounds({ x: width - 380, y: 0, width: 380, height });
   });
 
-  loadAllPlugins(); // Load all plugins after update
+  loadAllPlugins(); // ✅ Load plugins properly
 });
