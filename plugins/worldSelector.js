@@ -84,12 +84,12 @@ async function createWorldSelector(panelType) {
     table.style.textAlign = "left";
 
     if (panelType === "bottom") {
-        // ✅ Fix: Convert to grid layout when inside the bottom panel
         table.style.display = "grid";
-        table.style.gridTemplateColumns = "repeat(auto-fit, minmax(120px, 1fr))";
+        table.style.gridTemplateRows = "repeat(3, auto)";
+        table.style.gridAutoFlow = "column";
         table.style.gap = "5px";
     }
-
+    
     const headers = ["🏳️", "🌐", "🧍‍♂️"];
     const headerRow = document.createElement("tr");
 

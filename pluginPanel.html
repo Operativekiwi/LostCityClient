@@ -36,14 +36,15 @@
         }
 
         #bottom-plugin-bar {
-    display: none;
+    display: flex;
     flex-direction: row;
-    flex-wrap: wrap;  /* Allow buttons to wrap if necessary */
-    justify-content: start;  /* Align buttons to the left */
+    flex-wrap: nowrap; /* Ensure buttons remain in a row */
+    justify-content: start;
+    align-items: center;
     padding: 10px;
     background: #252526;
     height: 60px;
-    overflow-x: auto; /* Allow scrolling if needed */
+    overflow-x: auto; /* Allow scrolling if necessary */
 }
 
         .plugin-button {
