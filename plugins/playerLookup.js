@@ -1,3 +1,4 @@
+// playerLookup.js
 async function fetchAdventureLog(playerName) {
     try {
         const url = `https://2004.lostcity.rs/player/adventurelog/${encodeURIComponent(playerName)}`;
@@ -64,120 +65,277 @@ async function createPlayerLookupContent(panelType) {
     const container = document.createElement("div");
     container.id = "player-lookup";
     container.style.width = "100%";
-    container.style.boxSizing = "border-box";
-    container.style.padding = "10px";
+    
+    if (panelType === "bottom") {
+        container.style.display = "flex";
+        container.style.flexDirection = "row";
+        container.style.height = "100%";
+        
+        // Left section (Search)
+        const leftSection = document.createElement("div");
+        leftSection.style.width = "200px";
+        leftSection.style.borderRight = "1px solid #444";
+        leftSection.style.padding = "10px";
+        
+        const title = document.createElement("h4");
+        title.textContent = "Player Lookup";
+        title.style.margin = "0 0 10px 0";
+        
+        const inputContainer = document.createElement("div");
+        inputContainer.style.display = "flex";
+        inputContainer.style.flexDirection = "column";
+        inputContainer.style.gap = "5px";
 
-    const title = document.createElement("h3");
-    title.textContent = "Player Lookup";
-    title.style.textAlign = "center";
-    title.style.marginBottom = "10px";
-    container.appendChild(title);
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Enter player name...";
+        input.style.padding = "5px";
+        input.style.borderRadius = "3px";
+        input.style.border = "1px solid #ccc";
+        input.style.background = "#2d2d2d";
+        input.style.color = "white";
 
-    const inputContainer = document.createElement("div");
-    inputContainer.style.display = "flex";
-    inputContainer.style.width = "100%";
-    inputContainer.style.gap = "5px";
+        const button = document.createElement("button");
+        button.textContent = "Search";
+        button.style.padding = "5px";
+        button.style.borderRadius = "3px";
+        button.style.background = "#1e90ff";
+        button.style.color = "white";
+        button.style.border = "none";
+        button.style.cursor = "pointer";
+        
+        inputContainer.appendChild(input);
+        inputContainer.appendChild(button);
+        
+        leftSection.appendChild(title);
+        leftSection.appendChild(inputContainer);
+        
+        // Middle section (Skills)
+        const middleSection = document.createElement("div");
+        middleSection.style.flex = "1";
+        middleSection.style.padding = "10px";
+        middleSection.style.overflowY = "auto";
+        
+        const skillsContainer = document.createElement("div");
+        skillsContainer.id = "skills-container";
+        skillsContainer.style.display = "grid";
+        skillsContainer.style.gridTemplateColumns = "repeat(6, 1fr)";
+        skillsContainer.style.gap = "10px";
+        skillsContainer.style.padding = "10px";
+        
+        middleSection.appendChild(skillsContainer);
+        
+        // Right section (Logs)
+        const rightSection = document.createElement("div");
+        rightSection.style.width = "300px";
+        rightSection.style.borderLeft = "1px solid #444";
+        rightSection.style.padding = "10px";
+        rightSection.style.overflowY = "auto";
+        
+        const logsContainer = document.createElement("div");
+        logsContainer.id = "logs-container";
+        rightSection.appendChild(logsContainer);
+        
+        container.appendChild(leftSection);
+        container.appendChild(middleSection);
+        container.appendChild(rightSection);
 
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "Enter player name...";
-    input.style.flex = "1";
-    input.style.padding = "8px";
-    input.style.borderRadius = "5px";
-    input.style.border = "1px solid #ccc";
-    input.style.background = "#2d2d2d";
-    input.style.color = "white";
+        button.addEventListener("click", async () => {
+            const playerName = input.value.trim();
+            if (!playerName) return;
 
-    const button = document.createElement("button");
-    button.textContent = "Search";
-    button.style.padding = "8px";
-    button.style.borderRadius = "5px";
-    button.style.background = "#1e90ff";
-    button.style.color = "white";
-    button.style.border = "none";
-    button.style.cursor = "pointer";
+            skillsContainer.innerHTML = "Loading skills...";
+            logsContainer.innerHTML = "Loading logs...";
 
-    inputContainer.appendChild(input);
-    inputContainer.appendChild(button);
-    container.appendChild(inputContainer);
+            const [playerSkills, adventureLog] = await Promise.all([
+                fetchPlayerSkills(playerName),
+                fetchAdventureLog(playerName)
+            ]);
 
-    const results = document.createElement("div");
-    results.style.marginTop = "15px";
-    results.style.padding = "10px";
-    results.style.border = "1px solid #444";
-    results.style.background = "#222";
-    results.style.borderRadius = "5px";
-    results.style.display = "none";
-    container.appendChild(results);
-
-    button.addEventListener("click", async () => {
-        const playerName = input.value.trim();
-        if (!playerName) return;
-
-        results.style.display = "block";
-        results.innerHTML = "Loading...";
-
-        const playerSkills = await fetchPlayerSkills(playerName);
-        if (!playerSkills) {
-            results.innerHTML = "Player not found.";
-            return;
-        }
-
-        results.innerHTML = "";
-
-        // Skill grid
-        const skillGrid = document.createElement("div");
-        skillGrid.style.display = "grid";
-        skillGrid.style.gap = "5px";
-        skillGrid.style.marginTop = "10px";
-
-        // ✅ Fix: Adjust grid layout based on panel type
-        skillGrid.style.gridTemplateColumns = panelType === "bottom" 
-            ? "repeat(auto-fit, minmax(80px, 1fr))" 
-            : "repeat(3, 1fr)";
-
-        const skills = [
-            "Attack", "Hitpoints", "Mining", "Strength", "Agility", "Smithing",
-            "Defence", "Herblore", "Fishing", "Ranged", "Thieving", "Cooking",
-            "Prayer", "Crafting", "Firemaking", "Magic", "Fletching", "Woodcutting",
-            "Runecrafting"
-        ];
-
-        skills.forEach(skill => {
-            const skillDiv = document.createElement("div");
-            skillDiv.style.display = "flex";
-            skillDiv.style.alignItems = "center";
-            skillDiv.style.justifyContent = "center";
-
-            const icon = document.createElement("img");
-            const iconName = skill === "Runecrafting" ? "Runecraft" : skill;
-            icon.src = `https://oldschool.runescape.wiki/images/${iconName}_icon.png`;
-            icon.alt = skill;
-            icon.style.width = "20px";
-            icon.style.height = "20px";
-            icon.style.marginRight = "5px";
-
-            const label = document.createElement("span");
-            const skillData = playerSkills[skill.toLowerCase()];
-            label.textContent = skillData?.level || "1";
-            label.style.color = "yellow";
-
-            if (skillData?.xp) {
-                const xp = Math.floor(skillData.xp);
-                skillDiv.title = `XP: ${xp.toLocaleString()}`;
+            if (!playerSkills) {
+                skillsContainer.innerHTML = "Player not found.";
+                logsContainer.innerHTML = "";
+                return;
             }
 
-            skillDiv.appendChild(icon);
-            skillDiv.appendChild(label);
-            skillGrid.appendChild(skillDiv);
-        });
+            skillsContainer.innerHTML = "";
 
-        results.appendChild(skillGrid);
-    });
+            const skills = [
+                "Attack", "Hitpoints", "Mining", "Strength", "Agility", "Smithing",
+                "Defence", "Herblore", "Fishing", "Ranged", "Thieving", "Cooking",
+                "Prayer", "Crafting", "Firemaking", "Magic", "Fletching", "Woodcutting",
+                "Runecrafting"
+            ];
+
+            skills.forEach(skill => {
+                const skillDiv = document.createElement("div");
+                skillDiv.style.display = "flex";
+                skillDiv.style.alignItems = "center";
+                skillDiv.style.padding = "5px";
+                skillDiv.style.background = "#222";
+                skillDiv.style.borderRadius = "3px";
+
+                const icon = document.createElement("img");
+                const iconName = skill === "Runecrafting" ? "Runecraft" : skill;
+                icon.src = `https://oldschool.runescape.wiki/images/${iconName}_icon.png`;
+                icon.alt = skill;
+                icon.style.width = "20px";
+                icon.style.height = "20px";
+                icon.style.marginRight = "5px";
+
+                const label = document.createElement("span");
+                const skillData = playerSkills[skill.toLowerCase()];
+                label.textContent = skillData?.level || "1";
+                label.style.color = "yellow";
+
+                if (skillData?.xp) {
+                    const xp = Math.floor(skillData.xp);
+                    skillDiv.title = `XP: ${xp.toLocaleString()}`;
+                }
+
+                skillDiv.appendChild(icon);
+                skillDiv.appendChild(label);
+                skillsContainer.appendChild(skillDiv);
+            });
+
+            // Display adventure log
+            logsContainer.innerHTML = "";
+            const logTitle = document.createElement("h4");
+            logTitle.textContent = "Adventure Log";
+            logTitle.style.margin = "0 0 10px 0";
+            logsContainer.appendChild(logTitle);
+
+            adventureLog.forEach(entry => {
+                const logEntry = document.createElement("div");
+                logEntry.style.marginBottom = "10px";
+                logEntry.style.padding = "5px";
+                logEntry.style.background = "#222";
+                logEntry.style.borderRadius = "3px";
+
+                const timestamp = document.createElement("div");
+                timestamp.style.fontSize = "0.8em";
+                timestamp.style.color = "#999";
+                timestamp.textContent = entry.timestamp;
+
+                const content = document.createElement("div");
+                content.textContent = entry.content;
+
+                logEntry.appendChild(timestamp);
+                logEntry.appendChild(content);
+                logsContainer.appendChild(logEntry);
+            });
+        });
+    } else {
+        // Vertical panel layout
+        container.style.boxSizing = "border-box";
+        container.style.padding = "10px";
+
+        const title = document.createElement("h3");
+        title.textContent = "Player Lookup";
+        title.style.textAlign = "center";
+        title.style.marginBottom = "10px";
+        container.appendChild(title);
+
+        const inputContainer = document.createElement("div");
+        inputContainer.style.display = "flex";
+        inputContainer.style.width = "100%";
+        inputContainer.style.gap = "5px";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Enter player name...";
+        input.style.flex = "1";
+        input.style.padding = "8px";
+        input.style.borderRadius = "5px";
+        input.style.border = "1px solid #ccc";
+        input.style.background = "#2d2d2d";
+        input.style.color = "white";
+
+        const button = document.createElement("button");
+        button.textContent = "Search";
+        button.style.padding = "8px";
+        button.style.borderRadius = "5px";
+        button.style.background = "#1e90ff";
+        button.style.color = "white";
+        button.style.border = "none";
+        button.style.cursor = "pointer";
+
+        inputContainer.appendChild(input);
+        inputContainer.appendChild(button);
+        container.appendChild(inputContainer);
+
+        const results = document.createElement("div");
+        results.style.marginTop = "15px";
+        results.style.padding = "10px";
+        results.style.border = "1px solid #444";
+        results.style.background = "#222";
+        results.style.borderRadius = "5px";
+        results.style.display = "none";
+        container.appendChild(results);
+
+        button.addEventListener("click", async () => {
+            const playerName = input.value.trim();
+            if (!playerName) return;
+
+            results.style.display = "block";
+            results.innerHTML = "Loading...";
+
+            const playerSkills = await fetchPlayerSkills(playerName);
+            if (!playerSkills) {
+                results.innerHTML = "Player not found.";
+                return;
+            }
+
+            results.innerHTML = "";
+
+            const skillGrid = document.createElement("div");
+            skillGrid.style.display = "grid";
+            skillGrid.style.gridTemplateColumns = "repeat(3, 1fr)";
+            skillGrid.style.gap = "5px";
+            skillGrid.style.marginTop = "10px";
+
+            const skills = [
+                "Attack", "Hitpoints", "Mining", "Strength", "Agility", "Smithing",
+                "Defence", "Herblore", "Fishing", "Ranged", "Thieving", "Cooking",
+                "Prayer", "Crafting", "Firemaking", "Magic", "Fletching", "Woodcutting",
+                "Runecrafting"
+            ];
+
+            skills.forEach(skill => {
+                const skillDiv = document.createElement("div");
+                skillDiv.style.display = "flex";
+                skillDiv.style.alignItems = "center";
+                skillDiv.style.justifyContent = "center";
+
+                const icon = document.createElement("img");
+                const iconName = skill === "Runecrafting" ? "Runecraft" : skill;
+                icon.src = `https://oldschool.runescape.wiki/images/${iconName}_icon.png`;
+                icon.alt = skill;
+                icon.style.width = "20px";
+                icon.style.height = "20px";
+                icon.style.marginRight = "5px";
+
+                const label = document.createElement("span");
+                const skillData = playerSkills[skill.toLowerCase()];
+                label.textContent = skillData?.level || "1";
+                label.style.color = "yellow";
+
+                if (skillData?.xp) {
+                    const xp = Math.floor(skillData.xp);
+                    skillDiv.title = `XP: ${xp.toLocaleString()}`;
+                }
+
+                skillDiv.appendChild(icon);
+                skillDiv.appendChild(label);
+                skillGrid.appendChild(skillDiv);
+            });
+
+            results.appendChild(skillGrid);
+        });
+    }
 
     return container;
 }
-
 
 if (typeof window !== "undefined") {
     window.playerLookup = function () {

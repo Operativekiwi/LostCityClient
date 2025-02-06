@@ -38,14 +38,27 @@
         #bottom-plugin-bar {
     display: flex;
     flex-direction: row;
-    flex-wrap: nowrap; /* Ensure buttons remain in a row */
-    justify-content: start;
-    align-items: center;
-    padding: 10px;
+    height: 40px;
+    padding: 5px;
     background: #252526;
-    height: 60px;
-    overflow-x: auto; /* Allow scrolling if necessary */
+    border-bottom: 1px solid #333;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
+
+.horizontal-content {
+    display: flex;
+    flex-direction: row;
+    height: calc(100% - 40px);
+    overflow: hidden;
+}
+
+.horizontal-content > * {
+    padding: 10px;
+}
+
+
 
         .plugin-button {
             width: 40px;
