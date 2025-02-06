@@ -67,32 +67,22 @@ async function createPlayerLookupContent(panelType) {
     container.style.boxSizing = "border-box";
     container.style.padding = "10px";
 
-    if (panelType === "bottom") {
-        container.style.display = "grid";
-        container.style.gridTemplateColumns = "20% 50% 30%"; // Left: Search, Middle: Stats, Right: Logs
-        container.style.alignItems = "center";
-        container.style.gap = "10px";
-    }
+    const title = document.createElement("h3");
+    title.textContent = "Player Lookup";
+    title.style.textAlign = "center";
+    title.style.marginBottom = "10px";
+    container.appendChild(title);
 
-    // Create search section
-    const searchContainer = document.createElement("div");
-    searchContainer.style.display = "flex";
-    searchContainer.style.alignItems = "center";
-    searchContainer.style.justifyContent = "center";
-    
-    if (panelType === "bottom") {
-        searchContainer.style.flexDirection = "column";
-        searchContainer.style.fontSize = "smaller"; // Reduce size
-    } else {
-        searchContainer.style.width = "100%";
-        searchContainer.style.gap = "5px";
-    }
+    const inputContainer = document.createElement("div");
+    inputContainer.style.display = "flex";
+    inputContainer.style.width = "100%";
+    inputContainer.style.gap = "5px";
 
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "Enter player name...";
     input.style.flex = "1";
-    input.style.padding = "6px";
+    input.style.padding = "8px";
     input.style.borderRadius = "5px";
     input.style.border = "1px solid #ccc";
     input.style.background = "#2d2d2d";
@@ -100,50 +90,25 @@ async function createPlayerLookupContent(panelType) {
 
     const button = document.createElement("button");
     button.textContent = "Search";
-    button.style.padding = "6px";
+    button.style.padding = "8px";
     button.style.borderRadius = "5px";
     button.style.background = "#1e90ff";
     button.style.color = "white";
     button.style.border = "none";
     button.style.cursor = "pointer";
 
-    searchContainer.appendChild(input);
-    searchContainer.appendChild(button);
+    inputContainer.appendChild(input);
+    inputContainer.appendChild(button);
+    container.appendChild(inputContainer);
 
-    // Create results/stats section
     const results = document.createElement("div");
-    results.style.marginTop = "10px";
+    results.style.marginTop = "15px";
     results.style.padding = "10px";
     results.style.border = "1px solid #444";
     results.style.background = "#222";
     results.style.borderRadius = "5px";
     results.style.display = "none";
-
-    // Skill grid for stats
-    const skillGrid = document.createElement("div");
-    skillGrid.style.display = "grid";
-    skillGrid.style.gap = "5px";
-    
-    if (panelType === "bottom") {
-        skillGrid.style.gridTemplateColumns = "repeat(auto-fit, minmax(80px, 1fr))";
-    } else {
-        skillGrid.style.gridTemplateColumns = "repeat(3, 1fr)";
-    }
-
-    results.appendChild(skillGrid);
-
-    // Create logs section
-    const logs = document.createElement("div");
-    logs.textContent = "Logs appear here...";
-    logs.style.padding = "10px";
-    logs.style.border = "1px solid #444";
-    logs.style.background = "#222";
-    logs.style.borderRadius = "5px";
-    logs.style.display = "none";
-
-    if (panelType === "bottom") {
-        logs.style.textAlign = "right";
-    }
+    container.appendChild(results);
 
     button.addEventListener("click", async () => {
         const playerName = input.value.trim();
@@ -151,19 +116,25 @@ async function createPlayerLookupContent(panelType) {
 
         results.style.display = "block";
         results.innerHTML = "Loading...";
-        logs.style.display = "block";
 
         const playerSkills = await fetchPlayerSkills(playerName);
-        const adventureLog = await fetchAdventureLog(playerName);
-
         if (!playerSkills) {
             results.innerHTML = "Player not found.";
-            logs.innerHTML = "No logs found.";
             return;
         }
 
         results.innerHTML = "";
-        skillGrid.innerHTML = "";
+
+        // Skill grid
+        const skillGrid = document.createElement("div");
+        skillGrid.style.display = "grid";
+        skillGrid.style.gap = "5px";
+        skillGrid.style.marginTop = "10px";
+
+        // ✅ Fix: Adjust grid layout based on panel type
+        skillGrid.style.gridTemplateColumns = panelType === "bottom" 
+            ? "repeat(auto-fit, minmax(80px, 1fr))" 
+            : "repeat(3, 1fr)";
 
         const skills = [
             "Attack", "Hitpoints", "Mining", "Strength", "Agility", "Smithing",
@@ -201,24 +172,8 @@ async function createPlayerLookupContent(panelType) {
             skillGrid.appendChild(skillDiv);
         });
 
-        // Populate logs
-        logs.innerHTML = "";
-        adventureLog.forEach(entry => {
-            const logEntry = document.createElement("div");
-            logEntry.textContent = `[${entry.timestamp}] ${entry.content}`;
-            logs.appendChild(logEntry);
-        });
+        results.appendChild(skillGrid);
     });
-
-    if (panelType === "bottom") {
-        container.appendChild(searchContainer);
-        container.appendChild(results);
-        container.appendChild(logs);
-    } else {
-        container.appendChild(searchContainer);
-        container.appendChild(results);
-        container.appendChild(logs);
-    }
 
     return container;
 }
