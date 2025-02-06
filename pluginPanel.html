@@ -57,13 +57,13 @@
     <script>
         async function loadPlugins() {
             const plugins = await window.pluginAPI.getPlugins();
-            console.log("Loaded Plugins:", plugins); // DEBUGGING
+            console.log("Loaded Plugins:", plugins);
 
             const sidebar = document.getElementById("plugin-sidebar");
             sidebar.innerHTML = "";
 
             plugins.forEach(plugin => {
-                console.log(`Displaying Plugin: ${plugin.name}`); // DEBUGGING
+                console.log(`Displaying Plugin: ${plugin.name}`);
 
                 const btn = document.createElement("button");
                 btn.className = "plugin-button";
@@ -73,20 +73,13 @@
                 btn.addEventListener("click", async () => {
                     console.log(`Opening plugin: ${plugin.name}`);
 
-                    // Fetch plugin details dynamically
-                    const pluginResponse = await window.pluginAPI.loadPlugin(plugin.name);
-                    if (!pluginResponse.success) {
-                        document.getElementById("plugin-content").textContent = `Error: ${pluginResponse.error}`;
-                        return;
-                    }
-
-                    // Dynamically load the plugin script into the renderer process
+                    // Dynamically load plugin script
                     const script = document.createElement("script");
-                    script.src = `plugins/${plugin.name}.js`; // Ensure this path is correct
+                    script.src = `plugins/${plugin.name}.js`;
                     script.onload = async () => {
                         console.log(`Loaded plugin script for: ${plugin.name}`);
 
-                        if (window[plugin.name]) { // Plugin should be globally exposed
+                        if (typeof window[plugin.name] === "function") {
                             const pluginInstance = window[plugin.name]();
                             const content = await pluginInstance.createContent();
                             document.getElementById("plugin-content").innerHTML = "";
@@ -99,20 +92,20 @@
                         document.getElementById("plugin-content").textContent = "Failed to load plugin script.";
                     };
 
-                    document.body.appendChild(script); // Inject script dynamically
+                    document.body.appendChild(script);
                 });
 
                 sidebar.appendChild(btn);
             });
         }
 
-        // Listen for the main process to send the loaded plugins
+        // Receive the plugin list from main process
         window.pluginAPI.receive("plugins-loaded", (pluginList) => {
             console.log("Plugins received from main process:", pluginList);
             loadPlugins(pluginList);
         });
 
-        // Initial plugin load
+        // Load plugins initially
         window.pluginAPI.getPlugins().then(loadPlugins);
     </script>
 </body>

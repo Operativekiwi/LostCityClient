@@ -81,8 +81,9 @@ async function createWorldSelector() {
       const worldLink = document.createElement("a");
       worldLink.textContent = `World ${world}`;
       worldLink.href = "#";
-      worldLink.addEventListener("click", () => {
-          window.location.href = `https://w${world}-2004.lostcity.rs/rs2.cgi`;
+      worldLink.addEventListener("click", (event) => {
+          event.preventDefault(); // Prevent opening inside plugin panel
+          window.electronAPI.changeWorld(`https://w${world}-2004.lostcity.rs/rs2.cgi`);
       });
       worldCell.appendChild(worldLink);
       row.appendChild(worldCell);
@@ -106,11 +107,5 @@ window.worldSelector = function () {
       name: "World Selector",
       icon: "🌍",
       createContent: createWorldSelector,
-      async init() {
-          console.log("World Selector Plugin Initialized.");
-      },
-      destroy() {
-          console.log("World Selector Plugin Destroyed.");
-      },
   };
 };

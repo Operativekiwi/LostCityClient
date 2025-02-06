@@ -13,37 +13,46 @@ if (!fs.existsSync(PLUGIN_DIR)) {
 let plugins = [];
 
 async function loadAllPlugins() {
-  plugins = []; // Clear previous plugins
+  plugins = [];
 
   const pluginFiles = fs.readdirSync(PLUGIN_DIR).filter(file => file.endsWith(".js"));
 
   pluginFiles.forEach(file => {
       const pluginPath = path.join(PLUGIN_DIR, file);
-      
+
       try {
+          // Dynamically require the plugin
+          delete require.cache[require.resolve(pluginPath)];
           const pluginModule = require(pluginPath);
-          if (pluginModule && typeof pluginModule === "function") {
+          
+          if (typeof pluginModule === "function") {
               const plugin = pluginModule();
-              if (plugin && plugin.name) {
-                  plugins.push({
-                      name: plugin.name,
-                      icon: plugin.icon || "🔌"
-                      // Removed `createContent` and other functions to prevent serialization errors
-                  });
-              } else {
-                  console.warn(`Plugin ${file} does not have a valid name.`);
-              }
+              
+              plugins.push({
+                  name: plugin.name,
+                  icon: plugin.icon || "🔌" // Use the plugin's icon if available
+              });
           }
       } catch (error) {
           console.error(`Error loading plugin ${file}:`, error);
       }
   });
 
-  console.log("Sending plugins to renderer:", plugins); // Debugging
+  console.log("Sending plugins to renderer:", plugins);
+
   if (mainWindow) {
-      mainWindow.webContents.send("plugins-loaded", plugins); // Sending only serializable data
+      mainWindow.webContents.send("plugins-loaded", plugins);
   }
 }
+
+// ✅ FIX: Add this missing IPC handler
+ipcMain.handle("get-plugins", async () => plugins);
+
+ipcMain.on("changeWorld", (_, url) => {
+  console.log(`Changing game view to: ${url}`);
+  gameView.webContents.loadURL(url);
+});
+
 
 app.whenReady().then(async () => {
   await updatePlugins(); // Auto-update plugins on startup
@@ -59,7 +68,6 @@ app.whenReady().then(async () => {
     }
   });
 
-  // Create the game view (Center)
   const gameView = new BrowserView({
     webPreferences: {
       nodeIntegration: false,
@@ -71,13 +79,13 @@ app.whenReady().then(async () => {
   gameView.setBounds({ x: 0, y: 0, width: 900, height: 720 });
   gameView.webContents.loadURL("https://w1-2004.lostcity.rs/rs2.cgi");
 
-const pluginPanel = new BrowserView({
-  webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.js")
-  }
-});
+  const pluginPanel = new BrowserView({
+    webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, "preload.js")
+    }
+  });
 
   mainWindow.addBrowserView(pluginPanel);
   pluginPanel.setBounds({ x: 900, y: 0, width: 380, height: 720 });
@@ -90,36 +98,4 @@ const pluginPanel = new BrowserView({
   });
 
   loadAllPlugins(); // Load all plugins after update
-});
-
-// IPC Handlers for plugin updates
-ipcMain.handle("load-plugin", async (_, name) => {
-  const pluginPath = path.join(PLUGIN_DIR, `${name}.js`);
-  
-  if (!fs.existsSync(pluginPath)) {
-      return { success: false, error: "Plugin not found" };
-  }
-
-  try {
-      // Dynamically require the plugin again
-      delete require.cache[require.resolve(pluginPath)]; // Ensure fresh load
-      const pluginModule = require(pluginPath);
-
-      if (typeof pluginModule === "function") {
-          const plugin = pluginModule();
-          
-          // Ensure only serializable properties are sent
-          return {
-              success: true,
-              name: plugin.name,
-              icon: plugin.icon || "🔌",
-              hasContent: !!plugin.createContent, // Flag to indicate content availability
-          };
-      } else {
-          return { success: false, error: "Invalid plugin structure" };
-      }
-  } catch (error) {
-      console.error(`Error loading plugin ${name}:`, error);
-      return { success: false, error: error.message };
-  }
 });
