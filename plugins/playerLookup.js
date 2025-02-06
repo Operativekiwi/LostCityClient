@@ -60,7 +60,7 @@ async function fetchPlayerSkills(playerName) {
     }
 }
 
-async function createPlayerLookupContent() {
+async function createPlayerLookupContent(panelType) {
     const container = document.createElement("div");
     container.id = "player-lookup";
     container.style.width = "100%";
@@ -128,9 +128,11 @@ async function createPlayerLookupContent() {
         // Skill grid
         const skillGrid = document.createElement("div");
         skillGrid.style.display = "grid";
-        skillGrid.style.gridTemplateColumns = "repeat(3, 1fr)";
         skillGrid.style.gap = "5px";
         skillGrid.style.marginTop = "10px";
+
+        // Adjust grid based on panel type
+        skillGrid.style.gridTemplateColumns = panelType === "bottom" ? "repeat(auto-fit, minmax(100px, 1fr))" : "repeat(3, 1fr)";
 
         const skills = [
             "Attack", "Hitpoints", "Mining", "Strength", "Agility", "Smithing",
@@ -168,41 +170,6 @@ async function createPlayerLookupContent() {
         });
 
         results.appendChild(skillGrid);
-
-        // Adventure Log
-        const logTitle = document.createElement("h4");
-        logTitle.textContent = "Recent Adventure Log";
-        logTitle.style.marginTop = "20px";
-        results.appendChild(logTitle);
-
-        const logEntries = await fetchAdventureLog(playerName);
-        if (logEntries.length > 0) {
-            const logContainer = document.createElement("div");
-            logContainer.style.marginTop = "10px";
-            logEntries.slice(0, 3).forEach(entry => {
-                const entryDiv = document.createElement("div");
-                entryDiv.style.marginBottom = "10px";
-                entryDiv.style.color = "#aaa";
-
-                const timestamp = document.createElement("div");
-                timestamp.style.fontSize = "12px";
-                timestamp.style.color = "#888";
-                timestamp.textContent = entry.timestamp;
-
-                const content = document.createElement("div");
-                content.textContent = entry.content;
-
-                entryDiv.appendChild(timestamp);
-                entryDiv.appendChild(content);
-                logContainer.appendChild(entryDiv);
-            });
-
-            results.appendChild(logContainer);
-        } else {
-            const noLogs = document.createElement("div");
-            noLogs.textContent = "No recent logs found.";
-            results.appendChild(noLogs);
-        }
     });
 
     return container;
@@ -210,10 +177,14 @@ async function createPlayerLookupContent() {
 
 if (typeof window !== "undefined") {
     window.playerLookup = function () {
+        const panelType = document.getElementById("bottom-plugin-bar")?.contains(document.getElementById("plugin-content")) 
+            ? "bottom" 
+            : "right";
+
         return {
             name: "Player Lookup",
             icon: "🧍",
-            createContent: createPlayerLookupContent
+            createContent: () => createPlayerLookupContent(panelType)
         };
     };
 }

@@ -8,19 +8,31 @@
             margin: 0;
             height: 100vh;
             display: flex;
+            flex-direction: column;
             background: #1a1a1a;
             color: white;
             font-family: system-ui, -apple-system, sans-serif;
         }
 
-        #plugin-sidebar {
-            width: 60px;
-            background: #252526;
-            padding: 10px 0;
+        #plugin-sidebar, #bottom-plugin-bar {
             display: flex;
-            flex-direction: column;
-            align-items: center;
             gap: 8px;
+            padding: 10px;
+            background: #252526;
+            align-items: center;
+        }
+
+        #plugin-sidebar {
+            flex-direction: column;
+            width: 60px;
+        }
+
+        #bottom-plugin-bar {
+            flex-direction: row;
+            height: 60px;
+            width: 100%;
+            justify-content: center;
+            display: none; /* Hidden by default */
         }
 
         .plugin-button {
@@ -36,6 +48,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
+            user-select: none;
         }
 
         .plugin-button:hover {
@@ -48,65 +61,109 @@
             background: #2d2d2d;
             overflow-y: auto;
         }
+
+        .dragging {
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
     <div id="plugin-sidebar"></div>
     <div id="plugin-content">Select a plugin</div>
+    <div id="bottom-plugin-bar"></div>
 
     <script>
-async function loadPlugins() {
-    const plugins = await window.pluginAPI.getPlugins();
-    console.log("Loaded Plugins:", plugins);
+        let plugins = [];
+        let activePlugins = { right: [], bottom: [] };
 
-    const sidebar = document.getElementById("plugin-sidebar");
-    sidebar.innerHTML = "";
+        async function loadPlugins() {
+            const data = await window.pluginAPI.getPlugins();
+            plugins = data.plugins;
+            activePlugins = data.activePlugins;
 
-    plugins.forEach(plugin => {
-        console.log(`Displaying Plugin: ${plugin.name}`);
+            updatePluginPanels();
+        }
 
-        const btn = document.createElement("button");
-        btn.className = "plugin-button";
-        btn.textContent = plugin.icon || "🔌";
-        btn.title = plugin.name;
+        function updatePluginPanels() {
+            const sidebar = document.getElementById("plugin-sidebar");
+            const bottomBar = document.getElementById("bottom-plugin-bar");
 
-        btn.addEventListener("click", async () => {
-            console.log(`Opening plugin: ${plugin.name}`);
+            sidebar.innerHTML = "";
+            bottomBar.innerHTML = "";
 
-            // Dynamically load plugin script in renderer
-            const script = document.createElement("script");
-            script.src = `plugins/${plugin.name}.js`;
-            script.onload = async () => {
-                console.log(`Loaded plugin script for: ${plugin.name}`);
+            activePlugins.right.forEach(plugin => createPluginButton(plugin, sidebar, "right"));
+            activePlugins.bottom.forEach(plugin => createPluginButton(plugin, bottomBar, "bottom"));
 
-                if (typeof window[plugin.name] === "function") {
-                    const pluginInstance = window[plugin.name]();
-                    const content = await pluginInstance.createContent();
-                    document.getElementById("plugin-content").innerHTML = "";
-                    document.getElementById("plugin-content").appendChild(content);
-                } else {
-                    document.getElementById("plugin-content").textContent = "Failed to initialize plugin.";
-                }
-            };
-            script.onerror = () => {
-                document.getElementById("plugin-content").textContent = "Failed to load plugin script.";
-            };
+            bottomBar.style.display = activePlugins.bottom.length > 0 ? "flex" : "none";
+        }
 
-            document.body.appendChild(script);
+        function createPluginButton(plugin, parent, panel) {
+            const btn = document.createElement("button");
+            btn.className = "plugin-button";
+            btn.textContent = plugin.icon || "🔌";
+            btn.title = plugin.name;
+            btn.draggable = true;
+
+            btn.addEventListener("dragstart", (event) => {
+                event.dataTransfer.setData("text/plain", plugin.name);
+                btn.classList.add("dragging");
+            });
+
+            btn.addEventListener("dragend", () => {
+                btn.classList.remove("dragging");
+            });
+
+            btn.addEventListener("click", async () => {
+                const script = document.createElement("script");
+                script.src = `plugins/${plugin.name}.js`;
+                
+                script.onload = async () => {
+                    if (typeof window[plugin.name] === "function") {
+                        const pluginInstance = window[plugin.name]();
+                        const content = await pluginInstance.createContent();
+                        document.getElementById("plugin-content").innerHTML = "";
+                        document.getElementById("plugin-content").appendChild(content);
+                    }
+                };
+
+                document.body.appendChild(script);
+            });
+
+            parent.appendChild(btn);
+        }
+
+        document.getElementById("plugin-sidebar").addEventListener("dragover", (event) => {
+            event.preventDefault();
         });
 
-        sidebar.appendChild(btn);
-    });
-}
+        document.getElementById("plugin-sidebar").addEventListener("drop", (event) => {
+            const pluginName = event.dataTransfer.getData("text/plain");
+            movePlugin(pluginName, "right");
+        });
 
-// Receive the plugin list from the main process
-window.pluginAPI.receive("plugins-loaded", (pluginList) => {
-    console.log("Plugins received from main process:", pluginList);
-    loadPlugins(pluginList);
-});
+        document.getElementById("bottom-plugin-bar").addEventListener("dragover", (event) => {
+            event.preventDefault();
+        });
 
-// Initial plugin load
-window.pluginAPI.getPlugins().then(loadPlugins);
+        document.getElementById("bottom-plugin-bar").addEventListener("drop", (event) => {
+            const pluginName = event.dataTransfer.getData("text/plain");
+            movePlugin(pluginName, "bottom");
+        });
+
+        function movePlugin(pluginName, targetPanel) {
+            window.pluginAPI.movePlugin({ plugin: pluginName, targetPanel });
+        }
+
+        window.pluginAPI.receive("update-plugin-panels", (updatedPlugins) => {
+            activePlugins = updatedPlugins;
+            updatePluginPanels();
+        });
+
+        window.pluginAPI.receive("bottom-panel-visibility", (isVisible) => {
+            document.getElementById("bottom-plugin-bar").style.display = isVisible ? "flex" : "none";
+        });
+
+        loadPlugins();
     </script>
 </body>
 </html>

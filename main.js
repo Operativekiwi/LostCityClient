@@ -4,103 +4,126 @@ const fs = require("fs");
 const { updatePlugins } = require(path.join(__dirname, "pluginUpdater"));
 
 let mainWindow;
-let gameView;  // ✅ Declare gameView globally
+let gameView;
+let pluginPanel;
+let bottomPluginPanel;  // ✅ New bottom panel
+let bottomPanelEnabled = false; // ✅ Default to hidden
 const PLUGIN_DIR = path.join(__dirname, "plugins");
 
 if (!fs.existsSync(PLUGIN_DIR)) {
-  fs.mkdirSync(PLUGIN_DIR, { recursive: true });
+    fs.mkdirSync(PLUGIN_DIR, { recursive: true });
 }
 
 let plugins = [];
+let activePlugins = { right: [], bottom: [] }; // ✅ Tracks plugin locations
 
 async function loadAllPlugins() {
-  plugins = [];
-  
-  const pluginFiles = fs.readdirSync(PLUGIN_DIR).filter(file => file.endsWith(".js"));
-  
-  // Load plugin metadata from plugins.json
-  let pluginMetadata = {};
-  try {
-      const pluginData = fs.readFileSync(path.join(PLUGIN_DIR, "plugins.json"), "utf8");
-      pluginMetadata = JSON.parse(pluginData).plugins.reduce((acc, p) => {
-          acc[p.name] = p.icon || "🔌";
-          return acc;
-      }, {});
-  } catch (error) {
-      console.error("Error loading plugins.json:", error);
-  }
+    plugins = [];
 
-  plugins = pluginFiles.map(file => {
-      const name = file.replace(".js", "");
-      return {
-          name,
-          icon: pluginMetadata[name] || "🔌" // Read from plugins.json or default
-      };
-  });
+    let pluginMetadata = {};
+    try {
+        const pluginData = fs.readFileSync(path.join(PLUGIN_DIR, "plugins.json"), "utf8");
+        const parsedData = JSON.parse(pluginData);
+        pluginMetadata = parsedData.plugins.reduce((acc, p) => {
+            acc[p.name] = p.icon || "🔌";
+            return acc;
+        }, {});
 
-  console.log("Sending plugins to renderer:", plugins);
+        plugins = parsedData.plugins.map(({ name }) => ({
+            name,
+            icon: pluginMetadata[name] || "🔌"
+        }));
 
-  if (mainWindow) {
-      mainWindow.webContents.send("plugins-loaded", plugins);
-  }
+    } catch (error) {
+        console.error("Error loading plugins.json:", error);
+    }
+
+    if (mainWindow) {
+        mainWindow.webContents.send("plugins-loaded", { plugins, activePlugins });
+    }
 }
 
+// ✅ IPC handler to toggle bottom panel
+ipcMain.on("toggle-bottom-panel", (_, enabled) => {
+    bottomPanelEnabled = enabled;
+    if (bottomPluginPanel) {
+        bottomPluginPanel.setBounds({ x: 0, y: 720, width: 1280, height: enabled ? 200 : 0 });
+        bottomPluginPanel.setAutoResize({ width: true, height: enabled });
+        bottomPluginPanel.webContents.send("bottom-panel-visibility", enabled);
+    }
+});
 
-// ✅ Fix: Ensure the IPC handler is registered before any requests
-ipcMain.handle("get-plugins", async () => plugins);
-
-// ✅ Fix: Ensure gameView is available before calling it
-ipcMain.on("changeWorld", (_, url) => {
-  if (gameView) {
-    console.log(`Changing game view to: ${url}`);
-    gameView.webContents.loadURL(url);
-  } else {
-    console.error("Error: gameView is not initialized.");
-  }
+// ✅ IPC handler to update active plugin locations
+ipcMain.on("move-plugin", (_, { plugin, targetPanel }) => {
+    if (targetPanel === "right") {
+        activePlugins.bottom = activePlugins.bottom.filter(p => p !== plugin);
+        activePlugins.right.push(plugin);
+    } else if (targetPanel === "bottom") {
+        activePlugins.right = activePlugins.right.filter(p => p !== plugin);
+        activePlugins.bottom.push(plugin);
+    }
+    mainWindow.webContents.send("update-plugin-panels", activePlugins);
 });
 
 app.whenReady().then(async () => {
-  await updatePlugins(); // Auto-update plugins on startup
+    await updatePlugins();
 
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 720,
-    title: "Lost City Client",
-    webPreferences: {
-      nodeIntegration: false, 
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.js")
-    }
-  });
+    mainWindow = new BrowserWindow({
+        width: 1280,
+        height: 720,
+        title: "Lost City Client",
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, "preload.js")
+        }
+    });
 
-  gameView = new BrowserView({  // ✅ Assign gameView in the right place
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true
-    }
-  });
+    gameView = new BrowserView({
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+        }
+    });
 
-  mainWindow.setBrowserView(gameView);
-  gameView.setBounds({ x: 0, y: 0, width: 900, height: 720 });
-  gameView.webContents.loadURL("https://w1-2004.lostcity.rs/rs2.cgi");
+    mainWindow.setBrowserView(gameView);
+    gameView.setBounds({ x: 0, y: 0, width: 900, height: 720 });
+    gameView.webContents.loadURL("https://w1-2004.lostcity.rs/rs2.cgi");
 
-  const pluginPanel = new BrowserView({
-    webPreferences: {
-        nodeIntegration: false,
-        contextIsolation: true,
-        preload: path.join(__dirname, "preload.js")
-    }
-  });
+    pluginPanel = new BrowserView({
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, "preload.js")
+        }
+    });
 
-  mainWindow.addBrowserView(pluginPanel);
-  pluginPanel.setBounds({ x: 900, y: 0, width: 380, height: 720 });
-  pluginPanel.webContents.loadFile("pluginPanel.html");
+    mainWindow.addBrowserView(pluginPanel);
+    pluginPanel.setBounds({ x: 900, y: 0, width: 380, height: 720 });
+    pluginPanel.webContents.loadFile("pluginPanel.html");
 
-  mainWindow.on("resize", () => {
-    const [width, height] = mainWindow.getSize();
-    gameView.setBounds({ x: 0, y: 0, width: width - 380, height });
-    pluginPanel.setBounds({ x: width - 380, y: 0, width: 380, height });
-  });
+    bottomPluginPanel = new BrowserView({
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, "preload.js")
+        }
+    });
 
-  loadAllPlugins(); // ✅ Load plugins properly
+    mainWindow.addBrowserView(bottomPluginPanel);
+    bottomPluginPanel.setBounds({ x: 0, y: 720, width: 1280, height: 0 });
+    bottomPluginPanel.webContents.loadFile("pluginPanel.html");
+    bottomPluginPanel.setAutoResize({ width: true, height: bottomPanelEnabled });
+
+    mainWindow.on("resize", () => {
+        const [width, height] = mainWindow.getSize();
+        gameView.setBounds({ x: 0, y: 0, width: width - 380, height });
+        pluginPanel.setBounds({ x: width - 380, y: 0, width: 380, height });
+
+        if (bottomPanelEnabled) {
+            bottomPluginPanel.setBounds({ x: 0, y: height - 200, width, height: 200 });
+        }
+    });
+
+    loadAllPlugins();
 });
