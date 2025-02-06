@@ -131,8 +131,10 @@ async function createPlayerLookupContent(panelType) {
         skillGrid.style.gap = "5px";
         skillGrid.style.marginTop = "10px";
 
-        // Adjust grid based on panel type
-        skillGrid.style.gridTemplateColumns = panelType === "bottom" ? "repeat(auto-fit, minmax(100px, 1fr))" : "repeat(3, 1fr)";
+        // ✅ Fix: Adjust grid layout based on panel type
+        skillGrid.style.gridTemplateColumns = panelType === "bottom" 
+            ? "repeat(auto-fit, minmax(80px, 1fr))" 
+            : "repeat(3, 1fr)";
 
         const skills = [
             "Attack", "Hitpoints", "Mining", "Strength", "Agility", "Smithing",
@@ -145,6 +147,7 @@ async function createPlayerLookupContent(panelType) {
             const skillDiv = document.createElement("div");
             skillDiv.style.display = "flex";
             skillDiv.style.alignItems = "center";
+            skillDiv.style.justifyContent = "center";
 
             const icon = document.createElement("img");
             const iconName = skill === "Runecrafting" ? "Runecraft" : skill;
@@ -174,6 +177,7 @@ async function createPlayerLookupContent(panelType) {
 
     return container;
 }
+
 
 if (typeof window !== "undefined") {
     window.playerLookup = function () {

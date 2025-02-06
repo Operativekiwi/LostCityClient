@@ -56,9 +56,14 @@ ipcMain.on("toggle-bottom-panel", (_, enabled) => {
   console.log("✅ Received toggle-bottom-panel:", enabled);
 
   bottomPanelEnabled = enabled;
+
   if (bottomPluginPanel) {
-      bottomPluginPanel.setBounds({ x: 0, y: 720, width: 1280, height: enabled ? 200 : 0 });
+      const height = enabled ? 200 : 0;
+      console.log(`✅ Setting bottom panel height: ${height}`);
+
+      bottomPluginPanel.setBounds({ x: 0, y: 720 - height, width: 1280, height });
       bottomPluginPanel.setAutoResize({ width: true, height: enabled });
+
       bottomPluginPanel.webContents.send("bottom-panel-visibility", enabled);
   }
 
