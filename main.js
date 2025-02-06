@@ -1,7 +1,7 @@
 const { app, BrowserWindow, BrowserView, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const { updatePlugins } = require(path.join(__dirname, "scripts", "pluginUpdater"));
+const { updatePlugins } = require(path.join(__dirname, "pluginUpdater"));
 
 let mainWindow;
 const PLUGIN_DIR = path.join(__dirname, "plugins");
@@ -14,12 +14,18 @@ let plugins = [];
 
 async function loadAllPlugins() {
   const pluginFiles = fs.readdirSync(PLUGIN_DIR).filter(file => file.endsWith(".js"));
+
   pluginFiles.forEach(file => {
     const pluginPath = path.join(PLUGIN_DIR, file);
-    const pluginModule = require(pluginPath);
-    if (pluginModule && pluginModule.default) {
-      const plugin = pluginModule.default();
-      plugins.push(plugin);
+    
+    try {
+      const pluginModule = require(pluginPath);
+      if (pluginModule && typeof pluginModule === "function") {
+        const plugin = pluginModule();
+        plugins.push(plugin);
+      }
+    } catch (error) {
+      console.error(`Error loading plugin ${file}:`, error);
     }
   });
 }
