@@ -17,26 +17,10 @@ async function loadAllPlugins() {
 
   const pluginFiles = fs.readdirSync(PLUGIN_DIR).filter(file => file.endsWith(".js"));
 
-  pluginFiles.forEach(file => {
-      const pluginPath = path.join(PLUGIN_DIR, file);
-
-      try {
-          // Dynamically require the plugin
-          delete require.cache[require.resolve(pluginPath)];
-          const pluginModule = require(pluginPath);
-          
-          if (typeof pluginModule === "function") {
-              const plugin = pluginModule();
-              
-              plugins.push({
-                  name: plugin.name,
-                  icon: plugin.icon || "🔌" // Use the plugin's icon if available
-              });
-          }
-      } catch (error) {
-          console.error(`Error loading plugin ${file}:`, error);
-      }
-  });
+  plugins = pluginFiles.map(file => ({
+      name: file.replace(".js", ""),
+      icon: "🔌" // Default icon; will be overridden in renderer if needed
+  }));
 
   console.log("Sending plugins to renderer:", plugins);
 

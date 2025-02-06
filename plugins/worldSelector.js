@@ -101,11 +101,12 @@ async function createWorldSelector() {
   return container;
 }
 
-// Expose the plugin globally
-window.worldSelector = function () {
-  return {
-      name: "World Selector",
-      icon: "🌍",
-      createContent: createWorldSelector,
+if (typeof window !== "undefined") {
+  window.worldSelector = function () {
+    return {
+        name: "World Selector",
+        icon: "🌍",
+        createContent: createWorldSelector
+    };
   };
-};
+}
