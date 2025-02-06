@@ -10,6 +10,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "electron": "^34.1.0"
+    "electron": "^34.1.0",
+    "jsdom": "^26.0.0",
+    "node-fetch": "^2.7.0"
   }
 }
