@@ -120,35 +120,39 @@
         }
 
         function createPluginButton(plugin, parent, panel) {
-    const btn = document.createElement("button");
-    btn.className = "plugin-button";
-    btn.textContent = plugin.icon || "🔌";
-    btn.title = plugin.name;
-    btn.draggable = true;
+            const btn = document.createElement("button");
+            btn.className = "plugin-button";
+            btn.textContent = plugin.icon || "🔌";
+            btn.title = plugin.name;
+            btn.draggable = true;
 
-    btn.addEventListener("click", async () => {
-        console.log(`✅ Plugin Clicked: ${plugin.name}`); // Debugging log
-        const script = document.createElement("script");
-        script.src = `plugins/${plugin.name}.js`;
+            btn.addEventListener("dragstart", (event) => {
+                event.dataTransfer.setData("text/plain", plugin.name);
+                btn.classList.add("dragging");
+            });
 
-        script.onload = async () => {
-            console.log(`✅ Loaded script: ${plugin.name}.js`); // Debugging log
+            btn.addEventListener("dragend", () => {
+                btn.classList.remove("dragging");
+            });
 
-            if (typeof window[plugin.name] === "function") {
-                const pluginInstance = window[plugin.name]();
-                const content = await pluginInstance.createContent();
-                document.getElementById("plugin-content").innerHTML = "";
-                document.getElementById("plugin-content").appendChild(content);
-            } else {
-                console.error(`❌ Plugin function not found: window.${plugin.name}`);
-            }
-        };
+            btn.addEventListener("click", async () => {
+                const script = document.createElement("script");
+                script.src = `plugins/${plugin.name}.js`;
+                
+                script.onload = async () => {
+                    if (typeof window[plugin.name] === "function") {
+                        const pluginInstance = window[plugin.name]();
+                        const content = await pluginInstance.createContent();
+                        document.getElementById("plugin-content").innerHTML = "";
+                        document.getElementById("plugin-content").appendChild(content);
+                    }
+                };
 
-        document.body.appendChild(script);
-    });
+                document.body.appendChild(script);
+            });
 
-    parent.appendChild(btn);
-}
+            parent.appendChild(btn);
+        }
 
         document.getElementById("plugin-sidebar").addEventListener("dragover", (event) => {
             event.preventDefault();
