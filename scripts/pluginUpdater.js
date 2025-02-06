@@ -88,3 +88,24 @@ ipcMain.handle("update-plugins", async () => {
     return { success: false, error: error.message };
   }
 });
+async function updatePlugins() {
+    try {
+      console.log("Checking for plugin updates...");
+      const pluginList = await fetchPluginList(); // Fetch list from GitHub
+      if (!pluginList.plugins || !Array.isArray(pluginList.plugins)) {
+        throw new Error("Invalid plugin list format");
+      }
+  
+      await Promise.all(pluginList.plugins.map(downloadPlugin)); // Download/update all plugins
+  
+      console.log("All plugins are up to date.");
+      return { success: true };
+    } catch (error) {
+      console.error("Plugin update failed:", error);
+      return { success: false, error: error.message };
+    }
+  }
+  
+  // Export the function for `main.js`
+  module.exports = { updatePlugins };
+  

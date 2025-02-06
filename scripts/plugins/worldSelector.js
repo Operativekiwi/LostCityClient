@@ -100,7 +100,7 @@ async function fetchWorlds() {
     return container;
   }
   
-  module.exports = function () {
+  export default function () {
     return {
       name: "World Selector",
       icon: "🌍",
@@ -114,6 +114,5 @@ async function fetchWorlds() {
         console.log("World Selector Destroyed");
       },
     };
-  };
-  
+  }
   

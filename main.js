@@ -1,7 +1,7 @@
 const { app, BrowserWindow, BrowserView, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const pluginUpdater = require("./pluginUpdater"); // Import the updater
+const { updatePlugins } = require(path.join(__dirname, "scripts", "pluginUpdater"));
 
 let mainWindow;
 const PLUGIN_DIR = path.join(__dirname, "plugins");
@@ -25,7 +25,7 @@ async function loadAllPlugins() {
 }
 
 app.whenReady().then(async () => {
-  await pluginUpdater.updatePlugins(); // Check for updates on startup
+  await updatePlugins(); // Auto-update plugins on startup
 
   mainWindow = new BrowserWindow({
     width: 1280,
