@@ -50,5 +50,14 @@
 
     window.pluginAPI.getPlugins().then(loadPlugins);
   </script>
+  <button id="update-plugins">🔄 Update Plugins</button>
+
+  <script>
+    document.getElementById("update-plugins").addEventListener("click", async () => {
+      const result = await window.pluginAPI.updatePlugins();
+      alert(result.success ? "Plugins updated!" : `Error: ${result.error}`);
+    });
+  </script>
+  
 </body>
 </html>
