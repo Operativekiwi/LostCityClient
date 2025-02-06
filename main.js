@@ -1,6 +1,7 @@
 const { app, BrowserWindow, BrowserView, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const pluginUpdater = require("./pluginUpdater"); // Import the updater
 
 let mainWindow;
 const PLUGIN_DIR = path.join(__dirname, "plugins");
@@ -11,8 +12,21 @@ if (!fs.existsSync(PLUGIN_DIR)) {
 
 let plugins = [];
 
-// Create the Electron Window
-app.whenReady().then(() => {
+async function loadAllPlugins() {
+  const pluginFiles = fs.readdirSync(PLUGIN_DIR).filter(file => file.endsWith(".js"));
+  pluginFiles.forEach(file => {
+    const pluginPath = path.join(PLUGIN_DIR, file);
+    const pluginModule = require(pluginPath);
+    if (pluginModule && pluginModule.default) {
+      const plugin = pluginModule.default();
+      plugins.push(plugin);
+    }
+  });
+}
+
+app.whenReady().then(async () => {
+  await pluginUpdater.updatePlugins(); // Check for updates on startup
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 720,
@@ -33,32 +47,31 @@ app.whenReady().then(() => {
   });
 
   mainWindow.setBrowserView(gameView);
-  gameView.setBounds({ x: 0, y: 0, width: 900, height: 720 }); // Game takes left 900px
+  gameView.setBounds({ x: 0, y: 0, width: 900, height: 720 });
   gameView.webContents.loadURL("https://w1-2004.lostcity.rs/rs2.cgi");
 
   // Create the plugin panel (Right Side)
   const pluginPanel = new BrowserView({
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false // Plugins need node access
+      contextIsolation: false
     }
   });
 
   mainWindow.addBrowserView(pluginPanel);
-  pluginPanel.setBounds({ x: 900, y: 0, width: 380, height: 720 }); // Sidebar 380px
-  pluginPanel.webContents.loadFile("pluginPanel.html"); // Load plugin panel UI
+  pluginPanel.setBounds({ x: 900, y: 0, width: 380, height: 720 });
+  pluginPanel.webContents.loadFile("pluginPanel.html");
 
-  // Resize views when window resizes
   mainWindow.on("resize", () => {
     const [width, height] = mainWindow.getSize();
     gameView.setBounds({ x: 0, y: 0, width: width - 380, height });
     pluginPanel.setBounds({ x: width - 380, y: 0, width: 380, height });
   });
 
-  console.log("Main window loaded with game and plugin panel.");
+  loadAllPlugins(); // Load all plugins after update
 });
 
-// Handle Plugin Management
+// IPC Handlers for plugin updates
 ipcMain.handle("get-plugins", () => plugins);
 ipcMain.handle("load-plugin", async (_, name) => {
   const pluginPath = path.join(PLUGIN_DIR, `${name}.js`);
@@ -70,9 +83,4 @@ ipcMain.handle("load-plugin", async (_, name) => {
   const plugin = pluginModule.default();
   plugins.push(plugin);
   return { success: true, name: plugin.name };
-});
-
-// Close the application when all windows are closed
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
 });
