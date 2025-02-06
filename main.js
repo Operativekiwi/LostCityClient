@@ -78,7 +78,10 @@ ipcMain.handle("load-plugin", async (_, name) => {
   if (!fs.existsSync(pluginPath)) return { success: false, error: "Plugin not found" };
 
   const pluginModule = require(pluginPath);
-  if (!pluginModule || !pluginModule.default) return { success: false, error: "Invalid plugin structure" };
+  if (pluginModule && typeof pluginModule === "function") {
+    const plugin = pluginModule();
+    plugins.push(plugin);
+  }    if (!pluginModule || !pluginModule.default) return { success: false, error: "Invalid plugin structure" };
 
   const plugin = pluginModule.default();
   plugins.push(plugin);
