@@ -46,36 +46,31 @@
             background: #252526;
             border-top: 1px solid #333;
             display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
             gap: 5px;
             padding: 5px;
             overflow-x: auto;
             flex-shrink: 0;
         }
 
-        #bottom-plugin-bar.active {
-        height: 50px;
-        display: flex;
-        align-items: center;
-    }
+        .horizontal-content {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 10px;
+            padding: 10px;
+            height: calc(100% - 50px) !important;
+        }
 
-
-    .horizontal-content {
-        display: flex !important;
-        flex-direction: row !important;
-        gap: 10px;
-        padding: 10px;
-        height: calc(100% - 50px) !important;
-    }
-
-    .horizontal-content .plugin-section {
-        min-width: 300px;
-        height: 100%;
-        flex-shrink: 0;
-        overflow: auto;
-        background: #2d2d2d;
-        border-radius: 5px;
-    }
-
+        .horizontal-content .plugin-section {
+            min-width: 300px;
+            height: 100%;
+            flex-shrink: 0;
+            overflow: auto;
+            background: #2d2d2d;
+            border-radius: 5px;
+        }
 
         .plugin-section {
             min-width: 280px;
@@ -128,12 +123,10 @@
 
             console.log("✅ Plugins received in renderer:", pluginData);
             plugins = pluginData.plugins;
-            activePlugins = pluginData.activePlugins || { right: [], bottom: [] };
-
-            if (!activePlugins.right.length && !activePlugins.bottom.length) {
-                console.log("⚠️ No active plugins detected. Setting defaults...");
-                activePlugins = { right: plugins.map(p => p.name), bottom: [] };
-            }
+            activePlugins = { 
+                right: plugins.filter(p => p.panel === 'right').map(p => p.name), 
+                bottom: plugins.filter(p => p.panel === 'bottom').map(p => p.name) 
+            };
 
             updatePluginPanels();
         }
@@ -188,10 +181,10 @@
 
             // Apply horizontal layout for bottom panel
             if (activePlugins.bottom.length > 0) {
-    document.getElementById("plugin-content").classList.add("horizontal-content");
-    document.getElementById("bottom-plugin-bar").classList.add("active");
-    document.querySelector("#plugin-wrapper").style.flexDirection = "column";
-}
+                document.getElementById("plugin-content").classList.add("horizontal-content");
+                document.getElementById("bottom-plugin-bar").classList.add("active");
+                document.querySelector("#plugin-wrapper").style.flexDirection = "column";
+            }
         }
 
         function createPluginButton(plugin, parent, panel) {

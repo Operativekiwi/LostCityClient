@@ -3,11 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const { updatePlugins } = require(path.join(__dirname, "pluginUpdater"));
 
-let mainWindow;
-let gameView;
-let pluginPanel;
-let bottomPluginPanel;
-let bottomPanelEnabled = false;
+let mainWindow, gameView, pluginPanel, bottomPluginPanel;
 const PLUGIN_DIR = path.join(__dirname, "plugins");
 
 if (!fs.existsSync(PLUGIN_DIR)) {
@@ -16,83 +12,60 @@ if (!fs.existsSync(PLUGIN_DIR)) {
 
 let plugins = [];
 let activePlugins = { right: [], bottom: [] };
+const BOTTOM_PANEL_HEIGHT = 200;
 
+// ✅ Load Plugins and Define Panel Placement
 async function loadAllPlugins() {
-    plugins = [];
-
-    let pluginMetadata = {};
     try {
         const pluginData = fs.readFileSync(path.join(PLUGIN_DIR, "plugins.json"), "utf8");
         const parsedData = JSON.parse(pluginData);
-        pluginMetadata = parsedData.plugins.reduce((acc, p) => {
-            acc[p.name] = p.icon || "🔌";
-            return acc;
-        }, {});
 
-        plugins = parsedData.plugins.map(({ name }) => ({
+        plugins = parsedData.plugins.map(({ name, icon, panel }) => ({
             name,
-            icon: pluginMetadata[name] || "🔌"
+            icon: icon || "🔌",
+            panel: panel || "right"
         }));
 
-        console.log("✅ Plugins loaded successfully:", plugins);
+        activePlugins = {
+            right: plugins.filter(p => p.panel === "right").map(p => p.name),
+            bottom: plugins.filter(p => p.panel === "bottom").map(p => p.name)
+        };
+
+        console.log("✅ Plugins loaded:", plugins);
+        console.log("📌 Active Plugins:", activePlugins);
+
+        if (mainWindow) {
+            mainWindow.webContents.send("plugins-loaded", { plugins, activePlugins });
+        }
     } catch (error) {
         console.error("❌ Error loading plugins.json:", error);
     }
-
-    if (mainWindow) {
-        console.log("✅ Sending plugins to renderer:", { plugins, activePlugins });
-        mainWindow.webContents.send("plugins-loaded", { plugins, activePlugins });
-    }
 }
 
-// ✅ Re-added IPC handler for fetching plugins
-ipcMain.handle("get-plugins", async () => {
-    console.log("✅ get-plugins called, returning plugins...");
-    return { plugins, activePlugins };
-});
-
-// ✅ IPC handler to toggle bottom panel
-ipcMain.on("toggle-bottom-panel", (_, enabled) => {
-  bottomPanelEnabled = enabled;
-
-  if (bottomPluginPanel) {
-      const height = enabled ? 200 : 0;
-      console.log(`✅ Toggling Bottom Panel: Height set to ${height}`);
-
-      bottomPluginPanel.setBounds({ 
-        x: 0, 
-        y: mainWindow.getSize()[1] - 200, // Dynamic position
-        width: mainWindow.getSize()[0], 
-        height: 200 
-    });      
-    bottomPluginPanel.setAutoResize({ width: true, height: true });
-
-      bottomPluginPanel.webContents.send("bottom-panel-visibility", enabled);
-  }
-
-  mainWindow.webContents.send("bottom-panel-visibility", enabled);
-});
-
-
-// ✅ IPC handler to update active plugin locations
+// ✅ Move Plugin Between Panels
 ipcMain.on("move-plugin", (_, { plugin, targetPanel }) => {
-    console.log(`✅ Moving plugin '${plugin}' to ${targetPanel} panel`);
+    console.log(`🔄 Moving '${plugin}' to ${targetPanel} panel`);
 
-    if (targetPanel === "right") {
-        activePlugins.bottom = activePlugins.bottom.filter(p => p !== plugin);
-        activePlugins.right.push(plugin);
-    } else if (targetPanel === "bottom") {
-        activePlugins.right = activePlugins.right.filter(p => p !== plugin);
-        activePlugins.bottom.push(plugin);
-    }
+    activePlugins.right = activePlugins.right.filter(p => p !== plugin);
+    activePlugins.bottom = activePlugins.bottom.filter(p => p !== plugin);
 
-    console.log("✅ Updated activePlugins:", activePlugins);
+    if (targetPanel === "right") activePlugins.right.push(plugin);
+    else if (targetPanel === "bottom") activePlugins.bottom.push(plugin);
+
+    console.log("✅ Updated Active Plugins:", activePlugins);
     mainWindow.webContents.send("update-plugin-panels", activePlugins);
 });
 
+// ✅ Initialize Electron App
 app.whenReady().then(async () => {
     await updatePlugins();
+    createMainWindow();
+    setupViews();
+    loadAllPlugins();
+});
 
+// ✅ Create Main Window
+function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1280,
         height: 720,
@@ -104,6 +77,18 @@ app.whenReady().then(async () => {
         }
     });
 
+    mainWindow.on("resize", updateLayout);
+}
+
+// ✅ Set Up Browser Views
+function setupViews() {
+    setupGameView();
+    setupRightPluginPanel();
+    setupBottomPluginPanel();
+}
+
+// ✅ Game View (Main Game Area)
+function setupGameView() {
     gameView = new BrowserView({
         webPreferences: {
             nodeIntegration: false,
@@ -114,7 +99,10 @@ app.whenReady().then(async () => {
     mainWindow.setBrowserView(gameView);
     gameView.setBounds({ x: 0, y: 0, width: 900, height: 720 });
     gameView.webContents.loadURL("https://w1-2004.lostcity.rs/rs2.cgi");
+}
 
+// ✅ Right Panel (Vertical Plugin Panel)
+function setupRightPluginPanel() {
     pluginPanel = new BrowserView({
         webPreferences: {
             nodeIntegration: false,
@@ -126,7 +114,10 @@ app.whenReady().then(async () => {
     mainWindow.addBrowserView(pluginPanel);
     pluginPanel.setBounds({ x: 900, y: 0, width: 380, height: 720 });
     pluginPanel.webContents.loadFile("pluginPanel.html");
+}
 
+// ✅ Bottom Panel (Horizontal Plugin Panel)
+function setupBottomPluginPanel() {
     bottomPluginPanel = new BrowserView({
         webPreferences: {
             nodeIntegration: false,
@@ -136,19 +127,22 @@ app.whenReady().then(async () => {
     });
 
     mainWindow.addBrowserView(bottomPluginPanel);
-    bottomPluginPanel.setBounds({ x: 0, y: 720, width: 1280, height: 0 });
+    bottomPluginPanel.setBounds({ x: 0, y: mainWindow.getSize()[1] - BOTTOM_PANEL_HEIGHT, width: 1280, height: BOTTOM_PANEL_HEIGHT });
+    bottomPluginPanel.setAutoResize({ width: true, height: false });
     bottomPluginPanel.webContents.loadFile("pluginPanel.html");
-    bottomPluginPanel.setAutoResize({ width: true, height: bottomPanelEnabled });
+}
 
-    mainWindow.on("resize", () => {
-        const [width, height] = mainWindow.getSize();
-        gameView.setBounds({ x: 0, y: 0, width: width - 380, height });
-        pluginPanel.setBounds({ x: width - 380, y: 0, width: 380, height });
+// ✅ Update Layout on Window Resize
+function updateLayout() {
+    const [width, height] = mainWindow.getSize();
 
-        if (bottomPanelEnabled) {
-            bottomPluginPanel.setBounds({ x: 0, y: height - 200, width, height: 200 });
-        }
-    });
+    gameView.setBounds({ x: 0, y: 0, width: width - 380, height });
+    pluginPanel.setBounds({ x: width - 380, y: 0, width: 380, height });
+    bottomPluginPanel.setBounds({ x: 0, y: height - BOTTOM_PANEL_HEIGHT, width, height: BOTTOM_PANEL_HEIGHT });
+}
 
-    loadAllPlugins();
+// ✅ Handle IPC Request for Plugins
+ipcMain.handle("get-plugins", async () => {
+    console.log("✅ Sending plugins data to renderer...");
+    return { plugins, activePlugins };
 });
