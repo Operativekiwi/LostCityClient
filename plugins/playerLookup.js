@@ -75,7 +75,7 @@ async function createPlayerLookupContent(panelType) {
         
         // Left section (Search)
         const leftSection = document.createElement("div");
-        leftSection.style.width = "200px";
+        leftSection.style.width = "160px";
         leftSection.style.borderRight = "1px solid #444";
         leftSection.style.padding = "10px";
         
@@ -117,11 +117,13 @@ async function createPlayerLookupContent(panelType) {
         middleSection.style.flex = "1";
         middleSection.style.padding = "10px";
         middleSection.style.overflowY = "auto";
+        middleSection.style.overflowX = "auto";
+
         
         const skillsContainer = document.createElement("div");
         skillsContainer.id = "skills-container";
         skillsContainer.style.display = "grid";
-        skillsContainer.style.gridTemplateColumns = "repeat(6, 1fr)";
+        skillsContainer.style.gridTemplateColumns = "repeat(auto-fill, minmax(120px, 1fr))"; // More compact grid
         skillsContainer.style.gap = "10px";
         skillsContainer.style.padding = "10px";
         
@@ -129,7 +131,7 @@ async function createPlayerLookupContent(panelType) {
         
         // Right section (Logs)
         const rightSection = document.createElement("div");
-        rightSection.style.width = "300px";
+        rightSection.style.width = "220px";
         rightSection.style.borderLeft = "1px solid #444";
         rightSection.style.padding = "10px";
         rightSection.style.overflowY = "auto";

@@ -28,6 +28,12 @@
             align-items: center;
         }
 
+        #main-content-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
         #plugin-content {
             flex: 1;
             padding: 15px;
@@ -36,78 +42,64 @@
         }
 
         #bottom-plugin-bar {
-    display: flex;
-    flex-direction: row; /* Ensures buttons go in a row */
-    justify-content: flex-start;
-    align-items: center;
-    height: 40px;
-    padding: 5px;
-    background: #252526;
-    border-bottom: 1px solid #333;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    overflow-x: auto; /* Allow scrolling if too many buttons */
-    gap: 5px;
-}
+            height: 50px;
+            background: #252526;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 5px;
+            padding: 5px;
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
 
-.horizontal-content {
-    display: flex;
-    flex-direction: row; /* Layout plugins horizontally */
-    flex-wrap: nowrap;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px;
-    overflow-x: auto; /* Allow scrolling if necessary */
-    height: calc(100% - 40px);
-    width: 100%;
-}
+        .horizontal-content {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 10px;
+            padding: 10px;
+            overflow-x: auto;
+            height: 100%;
+        }
 
-/* Ensure each plugin section has a proper size */
-.plugin-section {
-    flex: 1;
-    min-width: 300px; /* Ensure plugins don’t collapse */
-    max-width: 25%;
-    padding: 10px;
-    background: #2d2d2d;
-    border-radius: 5px;
-}
+        .plugin-section {
+            min-width: 280px;
+            height: 100%;
+            background: #2d2d2d;
+            border-radius: 5px;
+            padding: 10px;
+            flex-shrink: 0;
+        }
 
-
-
-.horizontal-content > * {
-    padding: 10px;
-}
-
-
-
-.plugin-button {
-    width: 40px;
-    height: 40px;
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    border-radius: 8px;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    user-select: none;
-}
+        .plugin-button {
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
 
         .plugin-button:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
         }
     </style>
 </head>
 <body>
     <div id="plugin-wrapper">
         <div id="plugin-sidebar"></div>
-        <div id="plugin-content">Select a plugin</div>
+        <div id="main-content-container">
+            <div id="plugin-content">Select a plugin</div>
+            <div id="bottom-plugin-bar"></div>
+        </div>
     </div>
-    <div id="bottom-plugin-bar"></div>
 
     <script>
         let plugins = [];
@@ -132,51 +124,104 @@
         }
 
         function updatePluginPanels() {
-    const sidebar = document.getElementById("plugin-sidebar");
-    const bottomBar = document.getElementById("bottom-plugin-bar");
-    const pluginContent = document.getElementById("plugin-content");
+            const sidebar = document.getElementById("plugin-sidebar");
+            const bottomBar = document.getElementById("bottom-plugin-bar");
+            const pluginContent = document.getElementById("plugin-content");
 
-    console.log("🔍 Updating Plugin Panels..."); 
-    console.log("📌 Active Plugins (Right):", activePlugins.right);
-    console.log("📌 Active Plugins (Bottom):", activePlugins.bottom);
+            console.log("🔍 Updating Plugin Panels...");
+            console.log("📌 Active Plugins (Right):", activePlugins.right);
+            console.log("📌 Active Plugins (Bottom):", activePlugins.bottom);
 
-    sidebar.innerHTML = "";
-    bottomBar.innerHTML = "";
-    pluginContent.innerHTML = "";
+            sidebar.innerHTML = "";
+            bottomBar.innerHTML = "";
+            pluginContent.innerHTML = "";
 
-    // Check if bottom panel is active
-    if (activePlugins.bottom.length > 0) {
-        console.log("✅ Bottom Panel is active - Applying horizontal layout.");
-        pluginContent.classList.add("horizontal-content"); // Apply horizontal layout
-    } else {
-        console.log("❌ Bottom Panel is empty - Removing horizontal layout.");
-        pluginContent.classList.remove("horizontal-content");
-    }
+            // Right panel layout remains vertical
+            activePlugins.right.forEach(pluginName => {
+                const plugin = plugins.find(p => p.name === pluginName);
+                if (plugin) {
+                    console.log(`➡️ Adding ${plugin.name} to the RIGHT panel.`);
+                    createPluginButton(plugin, sidebar, "right");
+                }
+            });
 
-    activePlugins.right.forEach(pluginName => {
-        const plugin = plugins.find(p => p.name === pluginName);
-        if (plugin) {
-            console.log(`➡️ Adding ${plugin.name} to the RIGHT panel.`);
-            createPluginButton(plugin, sidebar, "right");
+            // Bottom panel buttons
+            bottomBar.style.display = "flex";
+            activePlugins.bottom.forEach(pluginName => {
+                const plugin = plugins.find(p => p.name === pluginName);
+                if (plugin) {
+                    console.log(`⬇️ Adding ${plugin.name} to the BOTTOM panel.`);
+                    createPluginButton(plugin, bottomBar, "bottom");
+
+                    const pluginWrapper = document.createElement("div");
+                    pluginWrapper.className = "plugin-section";
+                    pluginWrapper.dataset.plugin = pluginName;
+
+                    if (typeof window[pluginName] === "function") {
+                        console.log(`🔄 Loading content for ${plugin.name} in BOTTOM panel.`);
+                        window[pluginName]().createContent().then(content => {
+                            pluginWrapper.appendChild(content);
+                            pluginContent.appendChild(pluginWrapper);
+                        }).catch(error => {
+                            console.error(`❌ Error executing plugin: ${pluginName}`, error);
+                        });
+                    } else {
+                        console.error(`❌ Plugin function not found: window.${pluginName}`);
+                    }
+                }
+            });
+
+            // Apply horizontal layout for bottom panel
+            if (activePlugins.bottom.length > 0) {
+                pluginContent.classList.add("horizontal-content");
+                pluginContent.style.flexDirection = "row";
+                pluginContent.style.overflowX = "auto";
+                pluginContent.style.height = "calc(100% - 40px)"; // Account for bottom bar
+            }
         }
-    });
 
-    activePlugins.bottom.forEach(pluginName => {
-        const plugin = plugins.find(p => p.name === pluginName);
-        if (plugin) {
-            console.log(`⬇️ Adding ${plugin.name} to the BOTTOM panel.`);
-            createPluginButton(plugin, bottomBar, "bottom");
+        function createPluginButton(plugin, parent, panel) {
+            const btn = document.createElement("button");
+            btn.className = "plugin-button";
+            btn.textContent = plugin.icon || "🔌";
+            btn.title = plugin.name;
+            btn.draggable = true;
 
-            // Wrap plugin content to ensure correct layout
-            const pluginWrapper = document.createElement("div");
-            pluginWrapper.className = "plugin-section";
-            pluginWrapper.dataset.plugin = pluginName;
+            btn.addEventListener("click", async () => {
+                console.log(`✅ Plugin Clicked: ${plugin.name}`);
 
+                const existingScript = document.querySelector(`script[src="plugins/${plugin.name}.js"]`);
+                if (existingScript) {
+                    console.log(`⚠️ ${plugin.name}.js already loaded. Re-using.`);
+                    loadPluginContent(plugin.name);
+                    return;
+                }
+
+                const script = document.createElement("script");
+                script.src = `plugins/${plugin.name}.js`;
+
+                script.onload = async () => {
+                    console.log(`✅ Loaded script: ${plugin.name}.js`);
+                    loadPluginContent(plugin.name);
+                };
+
+                script.onerror = () => {
+                    console.error(`❌ Failed to load script: plugins/${plugin.name}.js`);
+                };
+
+                document.body.appendChild(script);
+            });
+
+            parent.appendChild(btn);
+        }
+
+        function loadPluginContent(pluginName) {
             if (typeof window[pluginName] === "function") {
-                console.log(`🔄 Loading content for ${plugin.name} in BOTTOM panel.`);
-                window[pluginName]().createContent().then(content => {
-                    pluginWrapper.appendChild(content);
-                    pluginContent.appendChild(pluginWrapper);
+                console.log(`✅ Executing plugin function: window.${pluginName}`);
+                const pluginInstance = window[pluginName]();
+                pluginInstance.createContent().then(content => {
+                    document.getElementById("plugin-content").innerHTML = "";
+                    document.getElementById("plugin-content").appendChild(content);
                 }).catch(error => {
                     console.error(`❌ Error executing plugin: ${pluginName}`, error);
                 });
@@ -184,74 +229,7 @@
                 console.error(`❌ Plugin function not found: window.${pluginName}`);
             }
         }
-    });
 
-    bottomBar.style.display = activePlugins.bottom.length > 0 ? "flex" : "none";
-}
-
-        function createPluginButton(plugin, parent, panel) {
-    const btn = document.createElement("button");
-    btn.className = "plugin-button";
-    btn.textContent = plugin.icon || "🔌";
-    btn.title = plugin.name;
-    btn.draggable = true;
-
-    btn.addEventListener("click", async () => {
-        console.log(`✅ Plugin Clicked: ${plugin.name}`);
-
-        // Check if script already exists
-        const existingScript = document.querySelector(`script[src="plugins/${plugin.name}.js"]`);
-        if (existingScript) {
-            console.log(`⚠️ ${plugin.name}.js already loaded. Re-using.`);
-            loadPluginContent(plugin.name);
-            return;
-        }
-
-        const script = document.createElement("script");
-        script.src = `plugins/${plugin.name}.js`;
-
-        script.onload = async () => {
-            console.log(`✅ Loaded script: ${plugin.name}.js`);
-            loadPluginContent(plugin.name);
-        };
-
-        script.onerror = () => {
-            console.error(`❌ Failed to load script: plugins/${plugin.name}.js`);
-        };
-
-        document.body.appendChild(script);
-    });
-
-    parent.appendChild(btn);
-}
-function loadPluginContent(pluginName) {
-    if (typeof window[pluginName] === "function") {
-        console.log(`✅ Executing plugin function: window.${pluginName}`);
-        const pluginInstance = window[pluginName]();
-        pluginInstance.createContent().then(content => {
-            document.getElementById("plugin-content").innerHTML = "";
-            document.getElementById("plugin-content").appendChild(content);
-        }).catch(error => {
-            console.error(`❌ Error executing plugin: ${pluginName}`, error);
-        });
-    } else {
-        console.error(`❌ Plugin function not found: window.${pluginName}`);
-    }
-}
-
-
-window.pluginAPI.receive("bottom-panel-visibility", (isVisible) => {
-    console.log("✅ Bottom Panel Visibility Changed:", isVisible);
-    const bottomBar = document.getElementById("bottom-plugin-bar");
-
-    if (isVisible) {
-        bottomBar.style.display = "flex";
-        bottomBar.style.height = "60px";  // Ensure correct height
-    } else {
-        bottomBar.style.display = "none";
-        bottomBar.style.height = "0";
-    }
-});
         window.pluginAPI.receive("plugins-loaded", loadPlugins);
         window.pluginAPI.getPlugins().then(loadPlugins);
     </script>

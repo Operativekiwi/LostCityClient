@@ -53,22 +53,26 @@ ipcMain.handle("get-plugins", async () => {
 
 // ✅ IPC handler to toggle bottom panel
 ipcMain.on("toggle-bottom-panel", (_, enabled) => {
-  console.log("✅ Received toggle-bottom-panel:", enabled);
-
   bottomPanelEnabled = enabled;
 
   if (bottomPluginPanel) {
       const height = enabled ? 200 : 0;
-      console.log(`✅ Setting bottom panel height: ${height}`);
+      console.log(`✅ Toggling Bottom Panel: Height set to ${height}`);
 
-      bottomPluginPanel.setBounds({ x: 0, y: 720 - height, width: 1280, height });
-      bottomPluginPanel.setAutoResize({ width: true, height: enabled });
+      bottomPluginPanel.setBounds({ 
+        x: 0, 
+        y: mainWindow.getSize()[1] - 200, // Dynamic position
+        width: mainWindow.getSize()[0], 
+        height: 200 
+    });      
+    bottomPluginPanel.setAutoResize({ width: true, height: true });
 
       bottomPluginPanel.webContents.send("bottom-panel-visibility", enabled);
   }
 
   mainWindow.webContents.send("bottom-panel-visibility", enabled);
 });
+
 
 // ✅ IPC handler to update active plugin locations
 ipcMain.on("move-plugin", (_, { plugin, targetPanel }) => {
