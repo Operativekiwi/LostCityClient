@@ -37,7 +37,9 @@
 
         #bottom-plugin-bar {
     display: flex;
-    flex-direction: row;
+    flex-direction: row; /* Ensures buttons go in a row */
+    justify-content: flex-start;
+    align-items: center;
     height: 40px;
     padding: 5px;
     background: #252526;
@@ -45,14 +47,33 @@
     position: sticky;
     top: 0;
     z-index: 100;
+    overflow-x: auto; /* Allow scrolling if too many buttons */
+    gap: 5px;
 }
 
 .horizontal-content {
     display: flex;
-    flex-direction: row;
+    flex-direction: row; /* Layout plugins horizontally */
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px;
+    overflow-x: auto; /* Allow scrolling if necessary */
     height: calc(100% - 40px);
-    overflow: hidden;
+    width: 100%;
 }
+
+/* Ensure each plugin section has a proper size */
+.plugin-section {
+    flex: 1;
+    min-width: 300px; /* Ensure plugins don’t collapse */
+    max-width: 25%;
+    padding: 10px;
+    background: #2d2d2d;
+    border-radius: 5px;
+}
+
+
 
 .horizontal-content > * {
     padding: 10px;
@@ -60,21 +81,21 @@
 
 
 
-        .plugin-button {
-            width: 40px;
-            height: 40px;
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            border-radius: 8px;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
+.plugin-button {
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    user-select: none;
+}
 
         .plugin-button:hover {
             background: rgba(255,255,255,0.1);
@@ -113,23 +134,60 @@
         function updatePluginPanels() {
     const sidebar = document.getElementById("plugin-sidebar");
     const bottomBar = document.getElementById("bottom-plugin-bar");
+    const pluginContent = document.getElementById("plugin-content");
+
+    console.log("🔍 Updating Plugin Panels..."); 
+    console.log("📌 Active Plugins (Right):", activePlugins.right);
+    console.log("📌 Active Plugins (Bottom):", activePlugins.bottom);
 
     sidebar.innerHTML = "";
     bottomBar.innerHTML = "";
+    pluginContent.innerHTML = "";
+
+    // Check if bottom panel is active
+    if (activePlugins.bottom.length > 0) {
+        console.log("✅ Bottom Panel is active - Applying horizontal layout.");
+        pluginContent.classList.add("horizontal-content"); // Apply horizontal layout
+    } else {
+        console.log("❌ Bottom Panel is empty - Removing horizontal layout.");
+        pluginContent.classList.remove("horizontal-content");
+    }
 
     activePlugins.right.forEach(pluginName => {
         const plugin = plugins.find(p => p.name === pluginName);
-        if (plugin) createPluginButton(plugin, sidebar, "right");
+        if (plugin) {
+            console.log(`➡️ Adding ${plugin.name} to the RIGHT panel.`);
+            createPluginButton(plugin, sidebar, "right");
+        }
     });
 
     activePlugins.bottom.forEach(pluginName => {
         const plugin = plugins.find(p => p.name === pluginName);
-        if (plugin) createPluginButton(plugin, bottomBar, "bottom");
+        if (plugin) {
+            console.log(`⬇️ Adding ${plugin.name} to the BOTTOM panel.`);
+            createPluginButton(plugin, bottomBar, "bottom");
+
+            // Wrap plugin content to ensure correct layout
+            const pluginWrapper = document.createElement("div");
+            pluginWrapper.className = "plugin-section";
+            pluginWrapper.dataset.plugin = pluginName;
+
+            if (typeof window[pluginName] === "function") {
+                console.log(`🔄 Loading content for ${plugin.name} in BOTTOM panel.`);
+                window[pluginName]().createContent().then(content => {
+                    pluginWrapper.appendChild(content);
+                    pluginContent.appendChild(pluginWrapper);
+                }).catch(error => {
+                    console.error(`❌ Error executing plugin: ${pluginName}`, error);
+                });
+            } else {
+                console.error(`❌ Plugin function not found: window.${pluginName}`);
+            }
+        }
     });
 
     bottomBar.style.display = activePlugins.bottom.length > 0 ? "flex" : "none";
 }
-
 
         function createPluginButton(plugin, parent, panel) {
     const btn = document.createElement("button");

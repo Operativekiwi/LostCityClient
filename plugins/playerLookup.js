@@ -62,11 +62,13 @@ async function fetchPlayerSkills(playerName) {
 }
 
 async function createPlayerLookupContent(panelType) {
+    console.log(`🛠️ Creating Player Lookup Content for panel: ${panelType}`);
     const container = document.createElement("div");
     container.id = "player-lookup";
     container.style.width = "100%";
     
     if (panelType === "bottom") {
+        console.log("✅ Applying bottom panel layout (horizontal)");
         container.style.display = "flex";
         container.style.flexDirection = "row";
         container.style.height = "100%";
@@ -226,6 +228,7 @@ async function createPlayerLookupContent(panelType) {
             });
         });
     } else {
+        console.log("🔳 Applying right panel layout (vertical)");
         // Vertical panel layout
         container.style.boxSizing = "border-box";
         container.style.padding = "10px";
