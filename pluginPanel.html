@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Plugin Panel</title>
+  <style>
+    body { 
+      margin: 0; 
+      display: flex; 
+      flex-direction: column; 
+      background-color: #1b1b1b;
+      color: white;
+      width: 100%;
+      height: 100%;
+    }
+    #plugin-list {
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      height: 100%;
+    }
+    .plugin-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px;
+      height: 50px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 10px;
+      font-size: 20px;
+      border-radius: 8px;
+    }
+    .plugin-content {
+      flex-grow: 1;
+      background: #282828;
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="plugin-list"></div>
+  <div class="plugin-content" id="plugin-content">Select a plugin</div>
+
+  <script>
+    async function loadPlugins() {
+      const plugins = await window.pluginAPI.getPlugins();
+      const listContainer = document.getElementById("plugin-list");
+      listContainer.innerHTML = "";
+
+      plugins.forEach(plugin => {
+        const btn = document.createElement("button");
+        btn.className = "plugin-button";
+        btn.textContent = plugin.icon || "🔌";
+        btn.title = plugin.name;
+
+        btn.addEventListener("click", async () => {
+          const content = await plugin.createContent();
+          document.getElementById("plugin-content").innerHTML = "";
+          document.getElementById("plugin-content").appendChild(content);
+        });
+
+        listContainer.appendChild(btn);
+      });
+    }
+
+    // Load Plugins After Updating from GitHub
+    async function updateAndLoadPlugins() {
+      await window.pluginAPI.updatePlugins(); // Fetch latest plugins
+      await loadPlugins(); // Then display them
+    }
+
+    updateAndLoadPlugins();
+  </script>
+</body>
+</html>
