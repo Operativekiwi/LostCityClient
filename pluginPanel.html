@@ -202,10 +202,6 @@
             btn.draggable = true;
 
             btn.addEventListener("click", async () => {
-    // Force reload the plugin script to refresh context
-    const newScript = document.createElement("script");
-    newScript.src = `plugins/${plugin.name}.js`;
-    document.body.appendChild(newScript);
                 console.log(`✅ Plugin Clicked: ${plugin.name}`);
 
                 const existingScript = document.querySelector(`script[src="plugins/${plugin.name}.js"]`);
