@@ -1,5 +1,6 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("pluginAPI", {
-  updatePlugins: () => ipcRenderer.invoke("update-plugins"),
+  getPlugins: () => ipcRenderer.invoke("get-plugins"),
+  loadPlugin: (name) => ipcRenderer.invoke("load-plugin", name),
 });

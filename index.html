@@ -30,9 +30,11 @@
   <div id="sidebar">
     <h3>Plugins</h3>
     <div id="plugin-list"></div>
+    <button id="update-plugins">🔄 Update Plugins</button>
   </div>
-  <iframe id="game-frame" src="https://w1-2004.lostcity.rs/rs2.cgi"></iframe>
   
+  <iframe id="game-frame" src="https://w1-2004.lostcity.rs/rs2.cgi"></iframe>
+
   <script>
     async function loadPlugins() {
       const plugins = await window.pluginAPI.getPlugins();
@@ -43,21 +45,24 @@
         const btn = document.createElement("button");
         btn.className = "plugin-button";
         btn.textContent = plugin.name;
-        btn.onclick = () => alert(`Plugin ${plugin.name} clicked`);
+        btn.onclick = async () => {
+          const content = await plugin.createContent();
+          document.body.appendChild(content);
+        };
         container.appendChild(btn);
       });
     }
 
+    async function updatePlugins() {
+      await window.pluginAPI.updatePlugins();
+      await loadPlugins(); // Reload plugin list after update
+      alert("Plugins updated!");
+    }
+
+    document.getElementById("update-plugins").addEventListener("click", updatePlugins);
+
     window.pluginAPI.getPlugins().then(loadPlugins);
   </script>
-  <button id="update-plugins">🔄 Update Plugins</button>
 
-  <script>
-    document.getElementById("update-plugins").addEventListener("click", async () => {
-      const result = await window.pluginAPI.updatePlugins();
-      alert(result.success ? "Plugins updated!" : `Error: ${result.error}`);
-    });
-  </script>
-  
 </body>
 </html>

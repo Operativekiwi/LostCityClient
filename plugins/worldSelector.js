@@ -10,8 +10,8 @@ async function fetchWorlds() {
   
       regionTables.forEach((regionTable) => {
         const rows = regionTable.querySelectorAll("tr");
-        let currentFlagSrc = null;
   
+        let currentFlagSrc = null;
         rows.forEach((row) => {
           const imgEl = row.querySelector("img");
           const link = row.querySelector("a");
@@ -82,7 +82,7 @@ async function fetchWorlds() {
       worldLink.textContent = `World ${world}`;
       worldLink.href = "#";
       worldLink.addEventListener("click", () => {
-        document.getElementById("game-frame").src = `https://w${world}-2004.lostcity.rs/rs2.cgi`;
+        window.location.href = `https://w${world}-2004.lostcity.rs/rs2.cgi`;
       });
       worldCell.appendChild(worldLink);
       row.appendChild(worldCell);
