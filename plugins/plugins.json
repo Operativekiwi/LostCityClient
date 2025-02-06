@@ -1,6 +1,5 @@
 {
     "plugins": [
-      "worldSelector"
+      { "name": "worldSelector", "icon": "🌍" }
     ]
-  }
-  
+}

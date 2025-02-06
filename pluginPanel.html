@@ -63,7 +63,7 @@ async function loadPlugins() {
     sidebar.innerHTML = "";
 
     plugins.forEach(plugin => {
-        console.log(`Displaying Plugin: ${plugin.name}`);
+        console.log(`Displaying Plugin: ${plugin.name} with icon ${plugin.icon}`);
 
         const btn = document.createElement("button");
         btn.className = "plugin-button";
@@ -73,7 +73,6 @@ async function loadPlugins() {
         btn.addEventListener("click", async () => {
             console.log(`Opening plugin: ${plugin.name}`);
 
-            // Dynamically load plugin script in renderer
             const script = document.createElement("script");
             script.src = `plugins/${plugin.name}.js`;
             script.onload = async () => {
@@ -88,6 +87,7 @@ async function loadPlugins() {
                     document.getElementById("plugin-content").textContent = "Failed to initialize plugin.";
                 }
             };
+
             script.onerror = () => {
                 document.getElementById("plugin-content").textContent = "Failed to load plugin script.";
             };

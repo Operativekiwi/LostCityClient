@@ -15,13 +15,28 @@ let plugins = [];
 
 async function loadAllPlugins() {
   plugins = [];
-
+  
   const pluginFiles = fs.readdirSync(PLUGIN_DIR).filter(file => file.endsWith(".js"));
+  
+  // Load plugin metadata from plugins.json
+  let pluginMetadata = {};
+  try {
+      const pluginData = fs.readFileSync(path.join(PLUGIN_DIR, "plugins.json"), "utf8");
+      pluginMetadata = JSON.parse(pluginData).plugins.reduce((acc, p) => {
+          acc[p.name] = p.icon || "🔌";
+          return acc;
+      }, {});
+  } catch (error) {
+      console.error("Error loading plugins.json:", error);
+  }
 
-  plugins = pluginFiles.map(file => ({
-      name: file.replace(".js", ""),
-      icon: "🔌" // Default icon
-  }));
+  plugins = pluginFiles.map(file => {
+      const name = file.replace(".js", "");
+      return {
+          name,
+          icon: pluginMetadata[name] || "🔌" // Read from plugins.json or default
+      };
+  });
 
   console.log("Sending plugins to renderer:", plugins);
 
@@ -29,6 +44,7 @@ async function loadAllPlugins() {
       mainWindow.webContents.send("plugins-loaded", plugins);
   }
 }
+
 
 // ✅ Fix: Ensure the IPC handler is registered before any requests
 ipcMain.handle("get-plugins", async () => plugins);
