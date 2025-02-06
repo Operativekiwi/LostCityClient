@@ -6,8 +6,8 @@ const { updatePlugins } = require(path.join(__dirname, "pluginUpdater"));
 let mainWindow;
 let gameView;
 let pluginPanel;
-let bottomPluginPanel;  // ✅ New bottom panel
-let bottomPanelEnabled = false; // ✅ Default to hidden
+let bottomPluginPanel;
+let bottomPanelEnabled = false;
 const PLUGIN_DIR = path.join(__dirname, "plugins");
 
 if (!fs.existsSync(PLUGIN_DIR)) {
@@ -15,7 +15,7 @@ if (!fs.existsSync(PLUGIN_DIR)) {
 }
 
 let plugins = [];
-let activePlugins = { right: [], bottom: [] }; // ✅ Tracks plugin locations
+let activePlugins = { right: [], bottom: [] };
 
 async function loadAllPlugins() {
     plugins = [];
@@ -34,27 +34,41 @@ async function loadAllPlugins() {
             icon: pluginMetadata[name] || "🔌"
         }));
 
+        console.log("✅ Plugins loaded successfully:", plugins);
     } catch (error) {
-        console.error("Error loading plugins.json:", error);
+        console.error("❌ Error loading plugins.json:", error);
     }
 
     if (mainWindow) {
+        console.log("✅ Sending plugins to renderer:", { plugins, activePlugins });
         mainWindow.webContents.send("plugins-loaded", { plugins, activePlugins });
     }
 }
 
+// ✅ Re-added IPC handler for fetching plugins
+ipcMain.handle("get-plugins", async () => {
+    console.log("✅ get-plugins called, returning plugins...");
+    return { plugins, activePlugins };
+});
+
 // ✅ IPC handler to toggle bottom panel
 ipcMain.on("toggle-bottom-panel", (_, enabled) => {
-    bottomPanelEnabled = enabled;
-    if (bottomPluginPanel) {
-        bottomPluginPanel.setBounds({ x: 0, y: 720, width: 1280, height: enabled ? 200 : 0 });
-        bottomPluginPanel.setAutoResize({ width: true, height: enabled });
-        bottomPluginPanel.webContents.send("bottom-panel-visibility", enabled);
-    }
+  console.log("✅ Received toggle-bottom-panel:", enabled);
+
+  bottomPanelEnabled = enabled;
+  if (bottomPluginPanel) {
+      bottomPluginPanel.setBounds({ x: 0, y: 720, width: 1280, height: enabled ? 200 : 0 });
+      bottomPluginPanel.setAutoResize({ width: true, height: enabled });
+      bottomPluginPanel.webContents.send("bottom-panel-visibility", enabled);
+  }
+
+  mainWindow.webContents.send("bottom-panel-visibility", enabled);
 });
 
 // ✅ IPC handler to update active plugin locations
 ipcMain.on("move-plugin", (_, { plugin, targetPanel }) => {
+    console.log(`✅ Moving plugin '${plugin}' to ${targetPanel} panel`);
+
     if (targetPanel === "right") {
         activePlugins.bottom = activePlugins.bottom.filter(p => p !== plugin);
         activePlugins.right.push(plugin);
@@ -62,6 +76,8 @@ ipcMain.on("move-plugin", (_, { plugin, targetPanel }) => {
         activePlugins.right = activePlugins.right.filter(p => p !== plugin);
         activePlugins.bottom.push(plugin);
     }
+
+    console.log("✅ Updated activePlugins:", activePlugins);
     mainWindow.webContents.send("update-plugin-panels", activePlugins);
 });
 

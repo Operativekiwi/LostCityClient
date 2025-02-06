@@ -11,7 +11,6 @@ async function createSettingsContent() {
     title.style.marginBottom = "10px";
     container.appendChild(title);
 
-    // Bottom Panel Toggle
     const bottomPanelLabel = document.createElement("label");
     bottomPanelLabel.style.display = "flex";
     bottomPanelLabel.style.alignItems = "center";
@@ -20,7 +19,6 @@ async function createSettingsContent() {
     bottomPanelLabel.style.border = "1px solid #444";
     bottomPanelLabel.style.borderRadius = "5px";
     bottomPanelLabel.style.background = "#222";
-    bottomPanelLabel.style.cursor = "pointer";
 
     const labelText = document.createElement("span");
     labelText.textContent = "Enable Bottom Plugin Panel";
@@ -34,7 +32,6 @@ async function createSettingsContent() {
     bottomPanelLabel.appendChild(bottomPanelToggle);
     container.appendChild(bottomPanelLabel);
 
-    // Save Button
     const saveButton = document.createElement("button");
     saveButton.textContent = "Save Settings";
     saveButton.style.display = "block";
@@ -48,7 +45,6 @@ async function createSettingsContent() {
 
     container.appendChild(saveButton);
 
-    // Load saved setting
     const savedSettings = JSON.parse(localStorage.getItem("pluginSettings")) || {};
     if (savedSettings.bottomPanelEnabled) {
         bottomPanelToggle.checked = true;
@@ -57,18 +53,14 @@ async function createSettingsContent() {
 
     saveButton.addEventListener("click", () => {
         const bottomPanelEnabled = bottomPanelToggle.checked;
-
-        // Save settings
         localStorage.setItem("pluginSettings", JSON.stringify({ bottomPanelEnabled }));
-
-        // Notify Electron main process
         window.pluginAPI.toggleBottomPanel(bottomPanelEnabled);
-
         alert("Settings saved!");
     });
 
     return container;
 }
+
 
 if (typeof window !== "undefined") {
     window.settings = function () {
