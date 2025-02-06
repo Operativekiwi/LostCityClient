@@ -1,6 +1,7 @@
 {
     "plugins": [
-      { "name": "worldSelector", "icon": "🌍" },
-      { "name": "playerLookup", "icon": "🧍" }
+        { "name": "settings", "icon": "⚙️" },
+        { "name": "worldSelector", "icon": "🌍" },
+        { "name": "playerLookup", "icon": "🧍" }
     ]
 }
