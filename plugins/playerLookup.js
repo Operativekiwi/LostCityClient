@@ -344,7 +344,7 @@ async function createPlayerLookupContent(panelType) {
 
 if (typeof window !== "undefined") {
     window.playerLookup = function () {
-        const panelType = document.getElementById("bottom-plugin-bar")?.contains(document.getElementById("plugin-content")) 
+        const panelType = document.getElementById("plugin-content").parentElement.id === "bottom-plugin-bar" 
             ? "bottom" 
             : "right";
 

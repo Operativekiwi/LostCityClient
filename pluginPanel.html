@@ -52,15 +52,30 @@
             flex-shrink: 0;
         }
 
-        .horizontal-content {
-            display: flex;
-            flex-direction: row;
-            flex-wrap: nowrap;
-            gap: 10px;
-            padding: 10px;
-            overflow-x: auto;
-            height: 100%;
-        }
+        #bottom-plugin-bar.active {
+        height: 50px;
+        display: flex;
+        align-items: center;
+    }
+
+
+    .horizontal-content {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 10px;
+        padding: 10px;
+        height: calc(100% - 50px) !important;
+    }
+
+    .horizontal-content .plugin-section {
+        min-width: 300px;
+        height: 100%;
+        flex-shrink: 0;
+        overflow: auto;
+        background: #2d2d2d;
+        border-radius: 5px;
+    }
+
 
         .plugin-section {
             min-width: 280px;
@@ -173,11 +188,10 @@
 
             // Apply horizontal layout for bottom panel
             if (activePlugins.bottom.length > 0) {
-                pluginContent.classList.add("horizontal-content");
-                pluginContent.style.flexDirection = "row";
-                pluginContent.style.overflowX = "auto";
-                pluginContent.style.height = "calc(100% - 40px)"; // Account for bottom bar
-            }
+    document.getElementById("plugin-content").classList.add("horizontal-content");
+    document.getElementById("bottom-plugin-bar").classList.add("active");
+    document.querySelector("#plugin-wrapper").style.flexDirection = "column";
+}
         }
 
         function createPluginButton(plugin, parent, panel) {
