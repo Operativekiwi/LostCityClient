@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lost City Client</title>
+  <style>
+    body { margin: 0; display: flex; }
+    iframe { flex: 1; border: none; }
+    #sidebar {
+      width: 250px;
+      background: #1b1b1b;
+      color: white;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    .plugin-button {
+      display: block;
+      width: 100%;
+      margin: 5px 0;
+      padding: 10px;
+      text-align: left;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h3>Plugins</h3>
+    <div id="plugin-list"></div>
+  </div>
+  <iframe id="game-frame" src="https://w1-2004.lostcity.rs/rs2.cgi"></iframe>
+  
+  <script>
+    async function loadPlugins() {
+      const plugins = await window.pluginAPI.getPlugins();
+      const container = document.getElementById("plugin-list");
+      container.innerHTML = "";
+
+      plugins.forEach(plugin => {
+        const btn = document.createElement("button");
+        btn.className = "plugin-button";
+        btn.textContent = plugin.name;
+        btn.onclick = () => alert(`Plugin ${plugin.name} clicked`);
+        container.appendChild(btn);
+      });
+    }
+
+    window.pluginAPI.getPlugins().then(loadPlugins);
+  </script>
+</body>
+</html>
