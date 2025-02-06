@@ -85,6 +85,29 @@ async function createPlayerLookupContent() {
     return container;
 }
 
+// ✅ Define the missing style functions
+function styleInput(input) {
+    input.style.width = "100%";
+    input.style.padding = "8px";
+    input.style.border = "1px solid #666";
+    input.style.borderRadius = "4px";
+    input.style.background = "#222";
+    input.style.color = "white";
+}
+
+function styleButton(button) {
+    button.style.width = "100%";
+    button.style.padding = "8px";
+    button.style.border = "none";
+    button.style.borderRadius = "4px";
+    button.style.background = "#444";
+    button.style.color = "white";
+    button.style.cursor = "pointer";
+    button.style.fontWeight = "bold";
+}
+
+
+
 // ✅ Left Panel - Search Section
 function createSearchSection() {
     const section = document.createElement("div");

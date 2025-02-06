@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Side Plugin Panel</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: row;
+            background: #1a1a1a;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        #plugin-wrapper {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 100%;
+        }
+
+        #plugin-sidebar {
+            display: flex;
+            flex-direction: column;
+            width: 60px;
+            padding: 10px;
+            background: #252526;
+            align-items: center;
+        }
+
+        #plugin-content {
+            flex: 1;
+            padding: 15px;
+            background: #2d2d2d;
+            overflow-y: auto;
+        }
+
+        .plugin-button {
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .plugin-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="plugin-wrapper">
+        <div id="plugin-sidebar"></div>
+        <div id="plugin-content">Select a plugin</div>
+    </div>
+
+    <script>
+        let plugins = [];
+        let activePlugins = { right: [] };
+
+        async function loadPlugins(pluginData) {
+            if (!pluginData || !pluginData.plugins) {
+                console.error("❌ No plugins received!");
+                return;
+            }
+
+            console.log("✅ Plugins received in side panel:", pluginData);
+            plugins = pluginData.plugins;
+            activePlugins.right = plugins.filter(p => p.panel === 'right').map(p => p.name);
+
+            updatePluginPanel();
+        }
+
+        function updatePluginPanel() {
+            const sidebar = document.getElementById("plugin-sidebar");
+            const pluginContent = document.getElementById("plugin-content");
+
+            sidebar.innerHTML = "";
+            pluginContent.innerHTML = "";
+
+            console.log("📌 Active Plugins (Right Panel):", activePlugins.right);
+
+            activePlugins.right.forEach(pluginName => {
+                const plugin = plugins.find(p => p.name === pluginName);
+                if (plugin) {
+                    console.log(`➡️ Adding ${plugin.name} to the RIGHT panel.`);
+                    createPluginButton(plugin, sidebar);
+                }
+            });
+        }
+
+        function createPluginButton(plugin, parent) {
+            const btn = document.createElement("button");
+            btn.className = "plugin-button";
+            btn.textContent = plugin.icon || "🔌";
+            btn.title = plugin.name;
+            btn.draggable = true;
+
+            btn.addEventListener("click", async () => {
+                console.log(`✅ Plugin Clicked: ${plugin.name}`);
+
+                const existingScript = document.querySelector(`script[src="plugins/${plugin.name}.js"]`);
+                if (existingScript) {
+                    console.log(`⚠️ ${plugin.name}.js already loaded. Re-using.`);
+                    loadPluginContent(plugin.name);
+                    return;
+                }
+
+                const script = document.createElement("script");
+                script.src = `plugins/${plugin.name}.js`;
+
+                script.onload = async () => {
+                    console.log(`✅ Loaded script: ${plugin.name}.js`);
+                    loadPluginContent(plugin.name);
+                };
+
+                script.onerror = () => {
+                    console.error(`❌ Failed to load script: plugins/${plugin.name}.js`);
+                };
+
+                document.body.appendChild(script);
+            });
+
+            parent.appendChild(btn);
+        }
+
+        function loadPluginContent(pluginName) {
+            if (typeof window[pluginName] === "function") {
+                console.log(`✅ Executing plugin function: window.${pluginName}`);
+                const pluginInstance = window[pluginName]();
+                pluginInstance.createContent().then(content => {
+                    const pluginContent = document.getElementById("plugin-content");
+                    pluginContent.innerHTML = "";
+                    pluginContent.appendChild(content);
+                }).catch(error => {
+                    console.error(`❌ Error executing plugin: ${pluginName}`, error);
+                });
+            } else {
+                console.error(`❌ Plugin function not found: window.${pluginName}`);
+            }
+        }
+
+        window.pluginAPI.receive("plugins-loaded", loadPlugins);
+        window.pluginAPI.getPlugins().then(loadPlugins);
+    </script>
+</body>
+</html>

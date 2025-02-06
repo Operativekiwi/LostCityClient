@@ -3,7 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const { updatePlugins } = require(path.join(__dirname, "pluginUpdater"));
 
-let mainWindow, gameView, pluginPanel, bottomPluginPanel;
+let mainWindow, gameView, sidePluginPanel, bottomPluginPanel;
 const PLUGIN_DIR = path.join(__dirname, "plugins");
 
 if (!fs.existsSync(PLUGIN_DIR)) {
@@ -13,8 +13,9 @@ if (!fs.existsSync(PLUGIN_DIR)) {
 let plugins = [];
 let activePlugins = { right: [], bottom: [] };
 const BOTTOM_PANEL_HEIGHT = 200;
+const SIDE_PANEL_WIDTH = 380;
 
-// ✅ Load Plugins and Define Panel Placement
+// ✅ Load Plugins and Assign Panels
 async function loadAllPlugins() {
     try {
         const pluginData = fs.readFileSync(path.join(PLUGIN_DIR, "plugins.json"), "utf8");
@@ -83,7 +84,7 @@ function createMainWindow() {
 // ✅ Set Up Browser Views
 function setupViews() {
     setupGameView();
-    setupRightPluginPanel();
+    setupSidePluginPanel();
     setupBottomPluginPanel();
 }
 
@@ -97,13 +98,13 @@ function setupGameView() {
     });
 
     mainWindow.setBrowserView(gameView);
-    gameView.setBounds({ x: 0, y: 0, width: 900, height: 720 });
+    gameView.setBounds({ x: 0, y: 0, width: 1280 - SIDE_PANEL_WIDTH, height: 720 });
     gameView.webContents.loadURL("https://w1-2004.lostcity.rs/rs2.cgi");
 }
 
-// ✅ Right Panel (Vertical Plugin Panel)
-function setupRightPluginPanel() {
-    pluginPanel = new BrowserView({
+// ✅ Right Panel (Side Plugin Panel)
+function setupSidePluginPanel() {
+    sidePluginPanel = new BrowserView({
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -111,12 +112,12 @@ function setupRightPluginPanel() {
         }
     });
 
-    mainWindow.addBrowserView(pluginPanel);
-    pluginPanel.setBounds({ x: 900, y: 0, width: 380, height: 720 });
-    pluginPanel.webContents.loadFile("pluginPanel.html");
+    mainWindow.addBrowserView(sidePluginPanel);
+    sidePluginPanel.setBounds({ x: 1280 - SIDE_PANEL_WIDTH, y: 0, width: SIDE_PANEL_WIDTH, height: 720 });
+    sidePluginPanel.webContents.loadFile("sidePanel.html");
 }
 
-// ✅ Bottom Panel (Horizontal Plugin Panel)
+// ✅ Bottom Panel (Bottom Plugin Panel)
 function setupBottomPluginPanel() {
     bottomPluginPanel = new BrowserView({
         webPreferences: {
@@ -127,17 +128,22 @@ function setupBottomPluginPanel() {
     });
 
     mainWindow.addBrowserView(bottomPluginPanel);
-    bottomPluginPanel.setBounds({ x: 0, y: mainWindow.getSize()[1] - BOTTOM_PANEL_HEIGHT, width: 1280, height: BOTTOM_PANEL_HEIGHT });
+    bottomPluginPanel.setBounds({
+        x: 0,
+        y: mainWindow.getSize()[1] - BOTTOM_PANEL_HEIGHT,
+        width: mainWindow.getSize()[0],
+        height: BOTTOM_PANEL_HEIGHT
+    });
     bottomPluginPanel.setAutoResize({ width: true, height: false });
-    bottomPluginPanel.webContents.loadFile("pluginPanel.html");
+    bottomPluginPanel.webContents.loadFile("bottomPanel.html");
 }
 
 // ✅ Update Layout on Window Resize
 function updateLayout() {
     const [width, height] = mainWindow.getSize();
 
-    gameView.setBounds({ x: 0, y: 0, width: width - 380, height });
-    pluginPanel.setBounds({ x: width - 380, y: 0, width: 380, height });
+    gameView.setBounds({ x: 0, y: 0, width: width - SIDE_PANEL_WIDTH, height });
+    sidePluginPanel.setBounds({ x: width - SIDE_PANEL_WIDTH, y: 0, width: SIDE_PANEL_WIDTH, height });
     bottomPluginPanel.setBounds({ x: 0, y: height - BOTTOM_PANEL_HEIGHT, width, height: BOTTOM_PANEL_HEIGHT });
 }
 
