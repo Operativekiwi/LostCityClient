@@ -1,4 +1,30 @@
-// ✅ Player Lookup Plugin - Fully Refactored for Bottom Panel
+async function fetchPlayerData(playerName) {
+    try {
+        const [skills, logs] = await Promise.all([
+            fetchPlayerSkills(playerName),
+            fetchAdventureLog(playerName)
+        ]);
+
+        return { skills, logs };
+    } catch (error) {
+        console.error("❌ Error fetching player data:", error);
+        return null;
+    }
+}
+
+async function fetchPlayerSkills(playerName) {
+    try {
+        const url = `https://2004.lostcity.rs/hiscores/player/${encodeURIComponent(playerName)}`;
+        const response = await fetch(url);
+        if (response.redirected) return null;
+
+        const html = await response.text();
+        return parsePlayerSkills(html);
+    } catch (error) {
+        console.error("❌ Failed to fetch player skills:", error);
+        return null;
+    }
+}
 
 async function fetchAdventureLog(playerName) {
     try {
@@ -9,34 +35,6 @@ async function fetchAdventureLog(playerName) {
     } catch (error) {
         console.error("❌ Failed to fetch adventure log:", error);
         return [];
-    }
-}
-
-function parseAdventureLog(html) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-
-    return Array.from(doc.querySelectorAll('div[style="text-align: left"]')).map(div => {
-        const timestamp = div.querySelector("span")?.textContent.trim() || "";
-        const content = div.textContent.split("\n")
-            .map(line => line.trim())
-            .filter(line => line && !line.includes(timestamp))[0] || "";
-        
-        return timestamp && content ? { timestamp, content } : null;
-    }).filter(entry => entry);
-}
-
-async function fetchPlayerSkills(playerName) {
-    try {
-        const url = `https://2004.lostcity.rs/hiscores/player/${encodeURIComponent(playerName)}`;
-        const response = await fetch(url);
-        if (response.redirected) return null;
-        
-        const html = await response.text();
-        return parsePlayerSkills(html);
-    } catch (error) {
-        console.error("❌ Failed to fetch player skills:", error);
-        return null;
     }
 }
 
@@ -60,186 +58,127 @@ function parsePlayerSkills(html) {
     return skills;
 }
 
-// ✅ Create Bottom Panel Layout
-async function createPlayerLookupContent() {
-    console.log("✅ PlayerLookup designed for bottom panel");
+function parseAdventureLog(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
 
-    // Create main container
+    return Array.from(doc.querySelectorAll('div[style="text-align: left"]')).map(div => {
+        const timestamp = div.querySelector("span")?.textContent.trim() || "";
+        const content = div.textContent.split("\n")
+            .map(line => line.trim())
+            .filter(line => line && !line.includes(timestamp))[0] || "";
+
+        return timestamp && content ? { timestamp, content } : null;
+    }).filter(entry => entry);
+}
+
+// ✅ Redesigned Layout (Horizontal Structure)
+async function createPlayerLookupContent() {
+    console.log("✅ PlayerLookup initialized for horizontal layout");
+
     const container = document.createElement("div");
-    container.id = "player-lookup";
     container.style.display = "flex";
-    container.style.flexDirection = "row";
     container.style.width = "100%";
     container.style.height = "100%";
+    container.style.gap = "20px";
+    container.style.padding = "10px";
 
-    // Create sections
-    const leftSection = createSearchSection();
-    const middleSection = createSkillsSection();
-    const rightSection = createLogsSection();
+    // ✅ Search Section
+    const searchSection = document.createElement("div");
+    searchSection.style.width = "220px";
+    searchSection.style.display = "flex";
+    searchSection.style.flexDirection = "column";
+    searchSection.style.gap = "10px";
 
-    // Append sections
-    container.appendChild(leftSection);
-    container.appendChild(middleSection);
-    container.appendChild(rightSection);
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.placeholder = "Enter player name...";
+    searchInput.style.width = "100%";
+    searchInput.style.padding = "8px";
+    searchInput.style.borderRadius = "4px";
+    searchInput.style.border = "1px solid #666";
+    searchInput.style.background = "#222";
+    searchInput.style.color = "white";
 
-    return container;
-}
+    const searchButton = document.createElement("button");
+    searchButton.textContent = "Search";
+    searchButton.style.width = "100%";
+    searchButton.style.padding = "8px";
+    searchButton.style.border = "none";
+    searchButton.style.borderRadius = "4px";
+    searchButton.style.background = "#444";
+    searchButton.style.color = "white";
+    searchButton.style.cursor = "pointer";
+    searchButton.style.fontWeight = "bold";
 
-// ✅ Define the missing style functions
-function styleInput(input) {
-    input.style.width = "100%";
-    input.style.padding = "8px";
-    input.style.border = "1px solid #666";
-    input.style.borderRadius = "4px";
-    input.style.background = "#222";
-    input.style.color = "white";
-}
+    searchSection.appendChild(searchInput);
+    searchSection.appendChild(searchButton);
 
-function styleButton(button) {
-    button.style.width = "100%";
-    button.style.padding = "8px";
-    button.style.border = "none";
-    button.style.borderRadius = "4px";
-    button.style.background = "#444";
-    button.style.color = "white";
-    button.style.cursor = "pointer";
-    button.style.fontWeight = "bold";
-}
+    // ✅ Player Stats Section
+    const statsContainer = document.createElement("div");
+    statsContainer.style.flex = "1";
+    statsContainer.style.display = "grid";
+    statsContainer.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
+    statsContainer.style.gap = "10px";
+    statsContainer.style.padding = "10px";
 
+    // ✅ Adventure Log Section
+    const logsContainer = document.createElement("div");
+    logsContainer.style.width = "280px";
+    logsContainer.style.overflowY = "auto";
+    logsContainer.style.padding = "10px";
 
-
-// ✅ Left Panel - Search Section
-function createSearchSection() {
-    const section = document.createElement("div");
-    section.style.width = "160px";
-    section.style.borderRight = "1px solid #444";
-    section.style.padding = "10px";
-
-    const title = document.createElement("h4");
-    title.textContent = "Player Lookup";
-    title.style.margin = "0 0 10px 0";
-
-    const inputContainer = document.createElement("div");
-    inputContainer.style.display = "flex";
-    inputContainer.style.flexDirection = "column";
-    inputContainer.style.gap = "5px";
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.placeholder = "Enter player name...";
-    styleInput(input);
-
-    const button = document.createElement("button");
-    button.textContent = "Search";
-    styleButton(button);
-
-    inputContainer.appendChild(input);
-    inputContainer.appendChild(button);
-
-    section.appendChild(title);
-    section.appendChild(inputContainer);
-
-    button.addEventListener("click", async () => {
-        const playerName = input.value.trim();
+    searchButton.addEventListener("click", async () => {
+        const playerName = searchInput.value.trim();
         if (!playerName) return;
-        await updatePlayerLookup(playerName);
+
+        statsContainer.innerHTML = "Loading...";
+        logsContainer.innerHTML = "Loading...";
+
+        const playerData = await fetchPlayerData(playerName);
+        if (!playerData || !playerData.skills) {
+            statsContainer.innerHTML = "Player not found.";
+            logsContainer.innerHTML = "";
+            return;
+        }
+
+        displaySkills(playerData.skills, statsContainer);
+        displayAdventureLog(playerData.logs, logsContainer);
     });
 
-    return section;
-}
+    container.appendChild(searchSection);
+    container.appendChild(statsContainer);
+    container.appendChild(logsContainer);
 
-// ✅ Middle Panel - Skills Display
-function createSkillsSection() {
-    const section = document.createElement("div");
-    section.style.flex = "1";
-    section.style.padding = "10px";
-    section.style.overflowY = "auto";
-    section.style.overflowX = "auto";
-
-    const skillsContainer = document.createElement("div");
-    skillsContainer.id = "skills-container";
-    skillsContainer.style.display = "grid";
-    skillsContainer.style.gridTemplateColumns = "repeat(auto-fill, minmax(120px, 1fr))";
-    skillsContainer.style.gap = "10px";
-    skillsContainer.style.padding = "10px";
-
-    section.appendChild(skillsContainer);
-    return section;
-}
-
-// ✅ Right Panel - Adventure Log
-function createLogsSection() {
-    const section = document.createElement("div");
-    section.style.width = "220px";
-    section.style.borderLeft = "1px solid #444";
-    section.style.padding = "10px";
-    section.style.overflowY = "auto";
-
-    const logsContainer = document.createElement("div");
-    logsContainer.id = "logs-container";
-
-    section.appendChild(logsContainer);
-    return section;
-}
-
-// ✅ Update Player Data
-async function updatePlayerLookup(playerName) {
-    const skillsContainer = document.getElementById("skills-container");
-    const logsContainer = document.getElementById("logs-container");
-
-    skillsContainer.innerHTML = "Loading skills...";
-    logsContainer.innerHTML = "Loading logs...";
-
-    const [playerSkills, adventureLog] = await Promise.all([
-        fetchPlayerSkills(playerName),
-        fetchAdventureLog(playerName)
-    ]);
-
-    if (!playerSkills) {
-        skillsContainer.innerHTML = "Player not found.";
-        logsContainer.innerHTML = "";
-        return;
-    }
-
-    displaySkills(playerSkills, skillsContainer);
-    displayAdventureLog(adventureLog, logsContainer);
+    return container;
 }
 
 // ✅ Display Player Skills
 function displaySkills(playerSkills, container) {
     container.innerHTML = "";
 
-    const skills = [
-        "Attack", "Hitpoints", "Mining", "Strength", "Agility", "Smithing",
-        "Defence", "Herblore", "Fishing", "Ranged", "Thieving", "Cooking",
-        "Prayer", "Crafting", "Firemaking", "Magic", "Fletching", "Woodcutting",
-        "Runecrafting"
-    ];
-
-    skills.forEach(skill => {
-        const skillData = playerSkills[skill.toLowerCase()];
-        if (!skillData) return;
+    Object.keys(playerSkills).forEach(skill => {
+        const skillData = playerSkills[skill];
 
         const skillDiv = document.createElement("div");
         skillDiv.style.display = "flex";
         skillDiv.style.alignItems = "center";
-        skillDiv.style.padding = "5px";
         skillDiv.style.background = "#222";
-        skillDiv.style.borderRadius = "3px";
+        skillDiv.style.borderRadius = "4px";
+        skillDiv.style.padding = "5px";
 
-        const icon = document.createElement("img");
-        icon.src = `https://oldschool.runescape.wiki/images/${skill}_icon.png`;
-        icon.alt = skill;
-        icon.style.width = "20px";
-        icon.style.height = "20px";
-        icon.style.marginRight = "5px";
+        const skillIcon = document.createElement("img");
+        skillIcon.src = `https://oldschool.runescape.wiki/images/${skill}_icon.png`;
+        skillIcon.style.width = "20px";
+        skillIcon.style.height = "20px";
+        skillIcon.style.marginRight = "5px";
 
-        const label = document.createElement("span");
-        label.textContent = skillData.level;
-        label.style.color = "yellow";
+        const skillLabel = document.createElement("span");
+        skillLabel.textContent = skillData.level;
+        skillLabel.style.color = "yellow";
 
-        skillDiv.appendChild(icon);
-        skillDiv.appendChild(label);
+        skillDiv.appendChild(skillIcon);
+        skillDiv.appendChild(skillLabel);
         container.appendChild(skillDiv);
     });
 }
@@ -247,21 +186,16 @@ function displaySkills(playerSkills, container) {
 // ✅ Display Adventure Log
 function displayAdventureLog(logs, container) {
     container.innerHTML = "";
-
-    logs.forEach(entry => {
+    logs.slice(0, 5).forEach(log => {
         const logEntry = document.createElement("div");
-        logEntry.style.marginBottom = "10px";
+        logEntry.innerHTML = `<b>${log.timestamp}</b>: ${log.content}`;
         logEntry.style.padding = "5px";
-        logEntry.style.background = "#222";
-        logEntry.style.borderRadius = "3px";
-
-        logEntry.innerHTML = `<div style="color: #999; font-size: 0.8em;">${entry.timestamp}</div>
-                              <div>${entry.content}</div>`;
-
+        logEntry.style.borderBottom = "1px solid #444";
         container.appendChild(logEntry);
     });
 }
 
+// ✅ Register Plugin
 if (typeof window !== "undefined") {
     window.playerLookup = function () {
         return {
