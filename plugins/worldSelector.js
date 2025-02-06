@@ -17,7 +17,6 @@ async function fetchWorlds() {
               const link = row.querySelector("a");
 
               if (imgEl && !link) {
-                  // Extract flag source and ensure it has the correct URL
                   let flagSrc = imgEl.getAttribute("src");
                   if (flagSrc && !flagSrc.startsWith("http")) {
                       flagSrc = `https://2004.lostcity.rs${flagSrc}`;
@@ -41,7 +40,7 @@ async function fetchWorlds() {
                   }
 
                   worlds.push({
-                      flagSrc: currentFlagSrc || "", // Attach the last seen flag source
+                      flagSrc: currentFlagSrc || "",
                       world: worldNumber,
                       players,
                   });
@@ -67,9 +66,14 @@ function setCurrentWorld(world) {
 async function createWorldSelector() {
   const container = document.createElement("div");
   container.id = "world-selector";
+  container.style.width = "100%";
+  container.style.boxSizing = "border-box";
+  container.style.padding = "10px";
 
   const title = document.createElement("h3");
   title.textContent = "Select a World";
+  title.style.textAlign = "center";
+  title.style.marginBottom = "10px";
   container.appendChild(title);
 
   let worlds = await fetchWorlds();
@@ -85,9 +89,9 @@ async function createWorldSelector() {
   headers.forEach(text => {
       const th = document.createElement("th");
       th.textContent = text;
-      th.style.cursor = "pointer";
       th.style.padding = "8px";
       th.style.borderBottom = "2px solid #ccc";
+      th.style.textAlign = "center";
       headerRow.appendChild(th);
   });
 
@@ -99,6 +103,7 @@ async function createWorldSelector() {
 
       // Flag Cell
       const flagCell = document.createElement("td");
+      flagCell.style.textAlign = "center";
       if (flagSrc) {
           const img = document.createElement("img");
           img.src = flagSrc;
@@ -110,30 +115,38 @@ async function createWorldSelector() {
 
       // World Cell
       const worldCell = document.createElement("td");
-      const worldLink = document.createElement("a");
-      worldLink.textContent = `World ${world}`;
-      worldLink.href = "#";
+      worldCell.style.textAlign = "center";
+      worldCell.style.color = "white"; // ✅ Changed from blue to white
 
       if (getCurrentWorld() === String(world)) {
-          worldLink.textContent += " (Current)";
-          worldLink.style.color = "green";
-          worldLink.style.fontWeight = "bold";
+          const currentText = document.createElement("span");
+          currentText.textContent = `World ${world} (Current)`;
+          currentText.style.fontWeight = "bold";
+          currentText.style.color = "green"; // ✅ Keeps current world visually distinct
+          worldCell.appendChild(currentText);
+      } else {
+          const worldLink = document.createElement("a");
+          worldLink.textContent = `World ${world}`;
+          worldLink.href = "#";
+          worldLink.style.color = "white"; // ✅ Ensures readability
+
+          worldLink.addEventListener("click", (event) => {
+              event.preventDefault();
+              setCurrentWorld(world);
+              window.electronAPI.changeWorld(`https://w${world}-2004.lostcity.rs/rs2.cgi`);
+              createWorldSelector().then(updatedContent => {
+                  container.replaceWith(updatedContent);
+              });
+          });
+
+          worldCell.appendChild(worldLink);
       }
 
-      worldLink.addEventListener("click", (event) => {
-          event.preventDefault();
-          setCurrentWorld(world);
-          window.electronAPI.changeWorld(`https://w${world}-2004.lostcity.rs/rs2.cgi`);
-          createWorldSelector().then(updatedContent => {
-              container.replaceWith(updatedContent);
-          });
-      });
-
-      worldCell.appendChild(worldLink);
       row.appendChild(worldCell);
 
       // Players Count
       const playersCell = document.createElement("td");
+      playersCell.style.textAlign = "center";
       playersCell.textContent = players;
       row.appendChild(playersCell);
 
@@ -150,7 +163,7 @@ if (typeof window !== "undefined") {
   window.worldSelector = function () {
       return {
           name: "World Selector",
-          icon: "🌍", // ✅ Ensures correct icon appears
+          icon: "🌍",
           createContent: createWorldSelector
       };
   };
