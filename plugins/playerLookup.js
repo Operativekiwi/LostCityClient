@@ -63,6 +63,12 @@ async function fetchPlayerSkills(playerName) {
 
 async function createPlayerLookupContent(panelType) {
     console.log(`🛠️ Creating Player Lookup Content for panel: ${panelType}`);
+
+    console.log('Parent structure:', 
+        document.getElementById("plugin-content")?.parentElement?.parentElement?.id
+    );
+    console.log(`Actual panelType: ${panelType}`);
+
     const container = document.createElement("div");
     container.id = "player-lookup";
     container.style.width = "100%";
@@ -344,14 +350,13 @@ async function createPlayerLookupContent(panelType) {
 
 if (typeof window !== "undefined") {
     window.playerLookup = function () {
-        const panelType = document.getElementById("plugin-content").parentElement.id === "bottom-plugin-bar" 
-            ? "bottom" 
-            : "right";
-
+        // New detection logic
+        const isBottomPanel = document.getElementById("plugin-content")?.parentElement?.parentElement?.id === "bottom-plugin-bar";
+        
         return {
             name: "Player Lookup",
             icon: "🧍",
-            createContent: () => createPlayerLookupContent(panelType)
-        };
+            createContent: () => createPlayerLookupContent(isBottomPanel ? "bottom" : "right")
+            };
     };
 }
