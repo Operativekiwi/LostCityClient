@@ -46,27 +46,30 @@
   <div class="plugin-content" id="plugin-content">Select a plugin</div>
 
   <script>
-    async function loadPlugins() {
-      const plugins = await window.pluginAPI.getPlugins();
-      const listContainer = document.getElementById("plugin-list");
-      listContainer.innerHTML = "";
+async function loadPlugins() {
+    const plugins = await window.pluginAPI.getPlugins();
+    console.log("Loaded Plugins:", plugins); // DEBUGGING - Check if plugins are being fetched
 
-      plugins.forEach(plugin => {
+    const listContainer = document.getElementById("plugin-list");
+    listContainer.innerHTML = "";
+
+    plugins.forEach(plugin => {
+        console.log(`Displaying Plugin: ${plugin.name}`); // DEBUGGING - Log each plugin
+
         const btn = document.createElement("button");
         btn.className = "plugin-button";
         btn.textContent = plugin.icon || "🔌";
         btn.title = plugin.name;
 
         btn.addEventListener("click", async () => {
-          const content = await plugin.createContent();
-          document.getElementById("plugin-content").innerHTML = "";
-          document.getElementById("plugin-content").appendChild(content);
+            const content = await plugin.createContent();
+            document.getElementById("plugin-content").innerHTML = "";
+            document.getElementById("plugin-content").appendChild(content);
         });
 
         listContainer.appendChild(btn);
-      });
-    }
-
+    });
+}
     // Load Plugins After Updating from GitHub
     async function updateAndLoadPlugins() {
       await window.pluginAPI.updatePlugins(); // Fetch latest plugins

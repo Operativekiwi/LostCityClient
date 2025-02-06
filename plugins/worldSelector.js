@@ -102,18 +102,17 @@ async function fetchWorlds() {
   
   module.exports = function () {
     return {
-      name: "World Selector",
-      icon: "🌍",
-      async createContent() {
-        return await createWorldSelector();
-      },
-      async init() {
-        console.log("World Selector Initialized");
-      },
-      destroy() {
-        console.log("World Selector Destroyed");
-      },
+        name: "World Selector",
+        icon: "🌍",
+        createContent: createWorldSelectorContent,
+        async init() {
+            console.log("World Selector Plugin Initialized.");
+        },
+        destroy() {
+            console.log("World Selector Plugin Destroyed.");
+        },
     };
-  };
+};
+
   
   

@@ -80,16 +80,12 @@ app.whenReady().then(async () => {
 // IPC Handlers for plugin updates
 ipcMain.handle("get-plugins", () => plugins);
 ipcMain.handle("load-plugin", async (_, name) => {
-  const pluginPath = path.join(PLUGIN_DIR, `${name}.js`);
-  if (!fs.existsSync(pluginPath)) return { success: false, error: "Plugin not found" };
-
   const pluginModule = require(pluginPath);
-  if (pluginModule && typeof pluginModule === "function") {
-    const plugin = pluginModule();
-    plugins.push(plugin);
-  }    if (!pluginModule || !pluginModule.default) return { success: false, error: "Invalid plugin structure" };
-
-  const plugin = pluginModule.default();
-  plugins.push(plugin);
-  return { success: true, name: plugin.name };
+  if (typeof pluginModule === "function") {
+      const plugin = pluginModule();
+      plugins.push(plugin);
+  } else {
+      console.error(`Invalid plugin structure in ${file}`);
+  }
+    return { success: true, name: plugin.name };
 });
