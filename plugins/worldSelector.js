@@ -104,7 +104,7 @@ async function fetchWorlds() {
     return {
         name: "World Selector",
         icon: "🌍",
-        createContent: createWorldSelectorContent,
+        createContent: createWorldSelector,
         async init() {
             console.log("World Selector Plugin Initialized.");
         },
