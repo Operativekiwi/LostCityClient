@@ -83,13 +83,13 @@ async function createWorldSelector(panelType) {
     table.style.borderCollapse = "collapse";
     table.style.textAlign = "left";
 
+    // Adjust layout based on panel type
     if (panelType === "bottom") {
         table.style.display = "grid";
-        table.style.gridTemplateRows = "repeat(3, auto)";
-        table.style.gridAutoFlow = "column";
+        table.style.gridTemplateColumns = "repeat(auto-fit, minmax(100px, 1fr))";
         table.style.gap = "5px";
     }
-    
+
     const headers = ["🏳️", "🌐", "🧍‍♂️"];
     const headerRow = document.createElement("tr");
 
@@ -110,6 +110,7 @@ async function createWorldSelector(panelType) {
     worlds.forEach(({ flagSrc, world, players }) => {
         const row = document.createElement("tr");
 
+        // Flag Cell
         const flagCell = document.createElement("td");
         flagCell.style.textAlign = "center";
         if (flagSrc) {
@@ -121,12 +122,38 @@ async function createWorldSelector(panelType) {
         }
         row.appendChild(flagCell);
 
+        // World Cell
         const worldCell = document.createElement("td");
         worldCell.style.textAlign = "center";
         worldCell.style.color = "white";
-        worldCell.textContent = `World ${world}`;
+
+        if (getCurrentWorld() === String(world)) {
+            const currentText = document.createElement("span");
+            currentText.textContent = `World ${world} (Current)`;
+            currentText.style.fontWeight = "bold";
+            currentText.style.color = "green";
+            worldCell.appendChild(currentText);
+        } else {
+            const worldLink = document.createElement("a");
+            worldLink.textContent = `World ${world}`;
+            worldLink.href = "#";
+            worldLink.style.color = "white";
+
+            worldLink.addEventListener("click", (event) => {
+                event.preventDefault();
+                setCurrentWorld(world);
+                window.electronAPI.changeWorld(`https://w${world}-2004.lostcity.rs/rs2.cgi`);
+                createWorldSelector(panelType).then(updatedContent => {
+                    container.replaceWith(updatedContent);
+                });
+            });
+
+            worldCell.appendChild(worldLink);
+        }
+
         row.appendChild(worldCell);
 
+        // Players Count
         const playersCell = document.createElement("td");
         playersCell.style.textAlign = "center";
         playersCell.textContent = players;
@@ -140,7 +167,6 @@ async function createWorldSelector(panelType) {
 
     return container;
 }
-
 
 if (typeof window !== "undefined") {
     window.worldSelector = function () {
