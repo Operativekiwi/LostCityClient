@@ -14,25 +14,17 @@
             font-family: system-ui, -apple-system, sans-serif;
         }
 
-        #plugin-wrapper {
+        #plugin-sidebar, #bottom-plugin-bar {
             display: flex;
-            height: 100vh;
-        }
-
-        #plugin-sidebar {
-            display: flex;
-            flex-direction: column;
-            width: 60px;
+            gap: 8px;
             padding: 10px;
             background: #252526;
             align-items: center;
         }
 
-        #plugin-content {
-            flex: 1;
-            padding: 15px;
-            background: #2d2d2d;
-            overflow-y: auto;
+        #plugin-sidebar {
+            flex-direction: column;
+            width: 60px;
         }
 
         #bottom-plugin-bar {
@@ -40,7 +32,6 @@
             height: 60px;
             width: 100%;
             justify-content: center;
-            background: #252526;
             display: none;
         }
 
@@ -63,13 +54,22 @@
         .plugin-button:hover {
             background: rgba(255,255,255,0.1);
         }
+
+        #plugin-content {
+            flex: 1;
+            padding: 15px;
+            background: #2d2d2d;
+            overflow-y: auto;
+        }
+
+        .dragging {
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
-    <div id="plugin-wrapper">
-        <div id="plugin-sidebar"></div>
-        <div id="plugin-content">Select a plugin</div>
-    </div>
+    <div id="plugin-sidebar"></div>
+    <div id="plugin-content">Select a plugin</div>
     <div id="bottom-plugin-bar"></div>
 
     <script>
@@ -83,18 +83,23 @@
             }
 
             console.log("✅ Plugins received in renderer:", pluginData);
+
             plugins = pluginData.plugins;
             activePlugins = pluginData.activePlugins || { right: [], bottom: [] };
 
+            // ✅ Ensure there are active plugins, or set defaults
             if (!activePlugins.right.length && !activePlugins.bottom.length) {
                 console.log("⚠️ No active plugins detected. Setting defaults...");
                 activePlugins = { right: plugins.map(p => p.name), bottom: [] };
             }
 
+            console.log("✅ Active Plugins (Before UI Update):", activePlugins);
             updatePluginPanels();
         }
 
         function updatePluginPanels() {
+            console.log("✅ Updating UI with active plugins:", activePlugins);
+
             const sidebar = document.getElementById("plugin-sidebar");
             const bottomBar = document.getElementById("bottom-plugin-bar");
 
@@ -115,37 +120,79 @@
         }
 
         function createPluginButton(plugin, parent, panel) {
-            const btn = document.createElement("button");
-            btn.className = "plugin-button";
-            btn.textContent = plugin.icon || "🔌";
-            btn.title = plugin.name;
-            btn.draggable = true;
+    const btn = document.createElement("button");
+    btn.className = "plugin-button";
+    btn.textContent = plugin.icon || "🔌";
+    btn.title = plugin.name;
+    btn.draggable = true;
 
-            btn.addEventListener("click", async () => {
-                const script = document.createElement("script");
-                script.src = `plugins/${plugin.name}.js`;
+    btn.addEventListener("click", async () => {
+        console.log(`✅ Plugin Clicked: ${plugin.name}`); // Debugging log
+        const script = document.createElement("script");
+        script.src = `plugins/${plugin.name}.js`;
 
-                script.onload = async () => {
-                    if (typeof window[plugin.name] === "function") {
-                        const pluginInstance = window[plugin.name]();
-                        const content = await pluginInstance.createContent();
-                        document.getElementById("plugin-content").innerHTML = "";
-                        document.getElementById("plugin-content").appendChild(content);
-                    }
-                };
+        script.onload = async () => {
+            console.log(`✅ Loaded script: ${plugin.name}.js`); // Debugging log
 
-                document.body.appendChild(script);
-            });
+            if (typeof window[plugin.name] === "function") {
+                const pluginInstance = window[plugin.name]();
+                const content = await pluginInstance.createContent();
+                document.getElementById("plugin-content").innerHTML = "";
+                document.getElementById("plugin-content").appendChild(content);
+            } else {
+                console.error(`❌ Plugin function not found: window.${plugin.name}`);
+            }
+        };
 
-            parent.appendChild(btn);
+        document.body.appendChild(script);
+    });
+
+    parent.appendChild(btn);
+}
+
+        document.getElementById("plugin-sidebar").addEventListener("dragover", (event) => {
+            event.preventDefault();
+        });
+
+        document.getElementById("plugin-sidebar").addEventListener("drop", (event) => {
+            const pluginName = event.dataTransfer.getData("text/plain");
+            movePlugin(pluginName, "right");
+        });
+
+        document.getElementById("bottom-plugin-bar").addEventListener("dragover", (event) => {
+            event.preventDefault();
+        });
+
+        document.getElementById("bottom-plugin-bar").addEventListener("drop", (event) => {
+            const pluginName = event.dataTransfer.getData("text/plain");
+            movePlugin(pluginName, "bottom");
+        });
+
+        function movePlugin(pluginName, targetPanel) {
+            window.pluginAPI.movePlugin({ plugin: pluginName, targetPanel });
         }
 
+        window.pluginAPI.receive("update-plugin-panels", (updatedPlugins) => {
+            activePlugins = updatedPlugins;
+            updatePluginPanels();
+        });
+
         window.pluginAPI.receive("bottom-panel-visibility", (isVisible) => {
-            console.log("✅ Bottom Panel Visibility Changed:", isVisible);
             document.getElementById("bottom-plugin-bar").style.display = isVisible ? "flex" : "none";
         });
 
-        window.pluginAPI.receive("plugins-loaded", loadPlugins);
+        window.pluginAPI.receive("plugins-loaded", (pluginData) => {
+            console.log("✅ Plugins received from main process:", pluginData);
+
+            // ✅ Set default active plugins if empty
+            if (!pluginData.activePlugins || (!pluginData.activePlugins.right.length && !pluginData.activePlugins.bottom.length)) {
+                console.log("⚠️ No active plugins detected. Setting defaults...");
+                pluginData.activePlugins = { right: pluginData.plugins.map(p => p.name), bottom: [] };
+            }
+
+            loadPlugins(pluginData);
+        });
+
         window.pluginAPI.getPlugins().then(loadPlugins);
     </script>
 </body>

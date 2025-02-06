@@ -1,4 +1,6 @@
 async function createSettingsContent() {
+    console.log("✅ Creating Settings Content"); // Debugging log
+
     const container = document.createElement("div");
     container.id = "settings-panel";
     container.style.width = "100%";
@@ -61,9 +63,10 @@ async function createSettingsContent() {
     return container;
 }
 
-
 if (typeof window !== "undefined") {
     window.settings = function () {
+        console.log("✅ Settings Plugin Initialized"); // Debugging log
+
         return {
             name: "Settings",
             icon: "⚙️",
