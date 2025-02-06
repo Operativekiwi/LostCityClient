@@ -262,7 +262,6 @@ function displayAdventureLog(logs, container) {
     });
 }
 
-// ✅ Register Plugin as Bottom Panel
 if (typeof window !== "undefined") {
     window.playerLookup = function () {
         return {
