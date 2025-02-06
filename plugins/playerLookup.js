@@ -63,27 +63,50 @@ async function fetchPlayerSkills(playerName) {
 async function createPlayerLookupContent() {
     const container = document.createElement("div");
     container.id = "player-lookup";
+    container.style.width = "100%";
+    container.style.boxSizing = "border-box";
+    container.style.padding = "10px";
 
     const title = document.createElement("h3");
     title.textContent = "Player Lookup";
+    title.style.textAlign = "center";
+    title.style.marginBottom = "10px";
     container.appendChild(title);
+
+    const inputContainer = document.createElement("div");
+    inputContainer.style.display = "flex";
+    inputContainer.style.width = "100%";
+    inputContainer.style.gap = "5px";
 
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "Enter player name...";
-    input.style.width = "100%";
-    input.style.marginBottom = "10px";
-    container.appendChild(input);
+    input.style.flex = "1";
+    input.style.padding = "8px";
+    input.style.borderRadius = "5px";
+    input.style.border = "1px solid #ccc";
+    input.style.background = "#2d2d2d";
+    input.style.color = "white";
 
     const button = document.createElement("button");
     button.textContent = "Search";
-    button.style.width = "100%";
-    button.style.marginBottom = "10px";
-    container.appendChild(button);
+    button.style.padding = "8px";
+    button.style.borderRadius = "5px";
+    button.style.background = "#1e90ff";
+    button.style.color = "white";
+    button.style.border = "none";
+    button.style.cursor = "pointer";
+
+    inputContainer.appendChild(input);
+    inputContainer.appendChild(button);
+    container.appendChild(inputContainer);
 
     const results = document.createElement("div");
+    results.style.marginTop = "15px";
     results.style.padding = "10px";
-    results.style.border = "1px solid #ccc";
+    results.style.border = "1px solid #444";
+    results.style.background = "#222";
+    results.style.borderRadius = "5px";
     results.style.display = "none";
     container.appendChild(results);
 
@@ -106,7 +129,7 @@ async function createPlayerLookupContent() {
         const skillGrid = document.createElement("div");
         skillGrid.style.display = "grid";
         skillGrid.style.gridTemplateColumns = "repeat(3, 1fr)";
-        skillGrid.style.gap = "10px";
+        skillGrid.style.gap = "5px";
         skillGrid.style.marginTop = "10px";
 
         const skills = [
@@ -159,8 +182,10 @@ async function createPlayerLookupContent() {
             logEntries.slice(0, 3).forEach(entry => {
                 const entryDiv = document.createElement("div");
                 entryDiv.style.marginBottom = "10px";
+                entryDiv.style.color = "#aaa";
 
                 const timestamp = document.createElement("div");
+                timestamp.style.fontSize = "12px";
                 timestamp.style.color = "#888";
                 timestamp.textContent = entry.timestamp;
 
@@ -178,14 +203,6 @@ async function createPlayerLookupContent() {
             noLogs.textContent = "No recent logs found.";
             results.appendChild(noLogs);
         }
-
-        const logLink = document.createElement("a");
-        logLink.href = `https://2004.lostcity.rs/player/adventurelog/${encodeURIComponent(playerName)}`;
-        logLink.target = "_blank";
-        logLink.textContent = "View Full Adventure Log";
-        logLink.style.display = "block";
-        logLink.style.marginTop = "10px";
-        results.appendChild(logLink);
     });
 
     return container;
