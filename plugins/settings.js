@@ -55,8 +55,16 @@ async function createSettingsContent() {
 
     saveButton.addEventListener("click", () => {
         const bottomPanelEnabled = bottomPanelToggle.checked;
+        console.log("✅ Toggling Bottom Plugin Panel:", bottomPanelEnabled); // Debugging
+    
         localStorage.setItem("pluginSettings", JSON.stringify({ bottomPanelEnabled }));
-        window.pluginAPI.toggleBottomPanel(bottomPanelEnabled);
+    
+        if (window.pluginAPI && window.pluginAPI.toggleBottomPanel) {
+            window.pluginAPI.toggleBottomPanel(bottomPanelEnabled);
+        } else {
+            console.error("❌ IPC event 'toggle-bottom-panel' not registered in pluginAPI.");
+        }
+    
         alert("Settings saved!");
     });
 

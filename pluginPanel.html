@@ -14,17 +14,25 @@
             font-family: system-ui, -apple-system, sans-serif;
         }
 
-        #plugin-sidebar, #bottom-plugin-bar {
+        #plugin-wrapper {
             display: flex;
-            gap: 8px;
+            height: 100vh;
+        }
+
+        #plugin-sidebar {
+            display: flex;
+            flex-direction: column;
+            width: 60px;
             padding: 10px;
             background: #252526;
             align-items: center;
         }
 
-        #plugin-sidebar {
-            flex-direction: column;
-            width: 60px;
+        #plugin-content {
+            flex: 1;
+            padding: 15px;
+            background: #2d2d2d;
+            overflow-y: auto;
         }
 
         #bottom-plugin-bar {
@@ -32,6 +40,7 @@
             height: 60px;
             width: 100%;
             justify-content: center;
+            background: #252526;
             display: none;
         }
 
@@ -54,22 +63,13 @@
         .plugin-button:hover {
             background: rgba(255,255,255,0.1);
         }
-
-        #plugin-content {
-            flex: 1;
-            padding: 15px;
-            background: #2d2d2d;
-            overflow-y: auto;
-        }
-
-        .dragging {
-            opacity: 0.5;
-        }
     </style>
 </head>
 <body>
-    <div id="plugin-sidebar"></div>
-    <div id="plugin-content">Select a plugin</div>
+    <div id="plugin-wrapper">
+        <div id="plugin-sidebar"></div>
+        <div id="plugin-content">Select a plugin</div>
+    </div>
     <div id="bottom-plugin-bar"></div>
 
     <script>
@@ -83,23 +83,18 @@
             }
 
             console.log("✅ Plugins received in renderer:", pluginData);
-
             plugins = pluginData.plugins;
             activePlugins = pluginData.activePlugins || { right: [], bottom: [] };
 
-            // ✅ Ensure there are active plugins, or set defaults
             if (!activePlugins.right.length && !activePlugins.bottom.length) {
                 console.log("⚠️ No active plugins detected. Setting defaults...");
                 activePlugins = { right: plugins.map(p => p.name), bottom: [] };
             }
 
-            console.log("✅ Active Plugins (Before UI Update):", activePlugins);
             updatePluginPanels();
         }
 
         function updatePluginPanels() {
-            console.log("✅ Updating UI with active plugins:", activePlugins);
-
             const sidebar = document.getElementById("plugin-sidebar");
             const bottomBar = document.getElementById("bottom-plugin-bar");
 
@@ -120,83 +115,62 @@
         }
 
         function createPluginButton(plugin, parent, panel) {
-            const btn = document.createElement("button");
-            btn.className = "plugin-button";
-            btn.textContent = plugin.icon || "🔌";
-            btn.title = plugin.name;
-            btn.draggable = true;
+    const btn = document.createElement("button");
+    btn.className = "plugin-button";
+    btn.textContent = plugin.icon || "🔌";
+    btn.title = plugin.name;
+    btn.draggable = true;
 
-            btn.addEventListener("dragstart", (event) => {
-                event.dataTransfer.setData("text/plain", plugin.name);
-                btn.classList.add("dragging");
-            });
+    btn.addEventListener("click", async () => {
+        console.log(`✅ Plugin Clicked: ${plugin.name}`);
 
-            btn.addEventListener("dragend", () => {
-                btn.classList.remove("dragging");
-            });
-
-            btn.addEventListener("click", async () => {
-                const script = document.createElement("script");
-                script.src = `plugins/${plugin.name}.js`;
-                
-                script.onload = async () => {
-                    if (typeof window[plugin.name] === "function") {
-                        const pluginInstance = window[plugin.name]();
-                        const content = await pluginInstance.createContent();
-                        document.getElementById("plugin-content").innerHTML = "";
-                        document.getElementById("plugin-content").appendChild(content);
-                    }
-                };
-
-                document.body.appendChild(script);
-            });
-
-            parent.appendChild(btn);
+        // Check if script already exists
+        const existingScript = document.querySelector(`script[src="plugins/${plugin.name}.js"]`);
+        if (existingScript) {
+            console.log(`⚠️ ${plugin.name}.js already loaded. Re-using.`);
+            loadPluginContent(plugin.name);
+            return;
         }
 
-        document.getElementById("plugin-sidebar").addEventListener("dragover", (event) => {
-            event.preventDefault();
-        });
+        const script = document.createElement("script");
+        script.src = `plugins/${plugin.name}.js`;
 
-        document.getElementById("plugin-sidebar").addEventListener("drop", (event) => {
-            const pluginName = event.dataTransfer.getData("text/plain");
-            movePlugin(pluginName, "right");
-        });
+        script.onload = async () => {
+            console.log(`✅ Loaded script: ${plugin.name}.js`);
+            loadPluginContent(plugin.name);
+        };
 
-        document.getElementById("bottom-plugin-bar").addEventListener("dragover", (event) => {
-            event.preventDefault();
-        });
+        script.onerror = () => {
+            console.error(`❌ Failed to load script: plugins/${plugin.name}.js`);
+        };
 
-        document.getElementById("bottom-plugin-bar").addEventListener("drop", (event) => {
-            const pluginName = event.dataTransfer.getData("text/plain");
-            movePlugin(pluginName, "bottom");
-        });
+        document.body.appendChild(script);
+    });
 
-        function movePlugin(pluginName, targetPanel) {
-            window.pluginAPI.movePlugin({ plugin: pluginName, targetPanel });
-        }
-
-        window.pluginAPI.receive("update-plugin-panels", (updatedPlugins) => {
-            activePlugins = updatedPlugins;
-            updatePluginPanels();
+    parent.appendChild(btn);
+}
+function loadPluginContent(pluginName) {
+    if (typeof window[pluginName] === "function") {
+        console.log(`✅ Executing plugin function: window.${pluginName}`);
+        const pluginInstance = window[pluginName]();
+        pluginInstance.createContent().then(content => {
+            document.getElementById("plugin-content").innerHTML = "";
+            document.getElementById("plugin-content").appendChild(content);
+        }).catch(error => {
+            console.error(`❌ Error executing plugin: ${pluginName}`, error);
         });
+    } else {
+        console.error(`❌ Plugin function not found: window.${pluginName}`);
+    }
+}
+
 
         window.pluginAPI.receive("bottom-panel-visibility", (isVisible) => {
+            console.log("✅ Bottom Panel Visibility Changed:", isVisible);
             document.getElementById("bottom-plugin-bar").style.display = isVisible ? "flex" : "none";
         });
 
-        window.pluginAPI.receive("plugins-loaded", (pluginData) => {
-            console.log("✅ Plugins received from main process:", pluginData);
-
-            // ✅ Set default active plugins if empty
-            if (!pluginData.activePlugins || (!pluginData.activePlugins.right.length && !pluginData.activePlugins.bottom.length)) {
-                console.log("⚠️ No active plugins detected. Setting defaults...");
-                pluginData.activePlugins = { right: pluginData.plugins.map(p => p.name), bottom: [] };
-            }
-
-            loadPlugins(pluginData);
-        });
-
+        window.pluginAPI.receive("plugins-loaded", loadPlugins);
         window.pluginAPI.getPlugins().then(loadPlugins);
     </script>
 </body>

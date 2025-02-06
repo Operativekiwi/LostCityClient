@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("pluginAPI", {
     getPlugins: () => ipcRenderer.invoke("get-plugins"),
     loadPlugin: (name) => ipcRenderer.invoke("load-plugin", name),
+    toggleBottomPanel: (enabled) => ipcRenderer.send("toggle-bottom-panel", enabled),
     receive: (channel, func) => {
         ipcRenderer.on(channel, (event, ...args) => func(...args));
     }
