@@ -1,82 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Plugin Panel</title>
-  <style>
-    body { 
-      margin: 0; 
-      display: flex; 
-      flex-direction: column; 
-      background-color: #1b1b1b;
-      color: white;
-      width: 100%;
-      height: 100%;
-    }
-    #plugin-list {
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      height: 100%;
-    }
-    .plugin-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 50px;
-      height: 50px;
-      background: #333;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-bottom: 10px;
-      font-size: 20px;
-      border-radius: 8px;
-    }
-    .plugin-content {
-      flex-grow: 1;
-      background: #282828;
-      padding: 10px;
-      border-radius: 8px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Plugin Panel</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            background: #1a1a1a;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        #plugin-sidebar {
+            width: 60px;
+            background: #252526;
+            padding: 10px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .plugin-button {
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .plugin-button:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        #plugin-content {
+            flex: 1;
+            padding: 15px;
+            background: #2d2d2d;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
-  <div id="plugin-list"></div>
-  <div class="plugin-content" id="plugin-content">Select a plugin</div>
+    <div id="plugin-sidebar"></div>
+    <div id="plugin-content">Select a plugin</div>
 
-  <script>
-async function loadPlugins() {
-    const plugins = await window.pluginAPI.getPlugins();
-    console.log("Loaded Plugins:", plugins); // DEBUGGING - Check if plugins are being fetched
+    <script>
+        async function loadPlugins() {
+            const plugins = await window.pluginAPI.getPlugins();
+            console.log("Loaded Plugins:", plugins); // DEBUGGING
 
-    const listContainer = document.getElementById("plugin-list");
-    listContainer.innerHTML = "";
+            const sidebar = document.getElementById("plugin-sidebar");
+            sidebar.innerHTML = "";
 
-    plugins.forEach(plugin => {
-        console.log(`Displaying Plugin: ${plugin.name}`); // DEBUGGING - Log each plugin
+            plugins.forEach(plugin => {
+                console.log(`Displaying Plugin: ${plugin.name}`); // DEBUGGING
 
-        const btn = document.createElement("button");
-        btn.className = "plugin-button";
-        btn.textContent = plugin.icon || "🔌";
-        btn.title = plugin.name;
+                const btn = document.createElement("button");
+                btn.className = "plugin-button";
+                btn.textContent = plugin.icon || "🔌";
+                btn.title = plugin.name;
 
-        btn.addEventListener("click", async () => {
-            const content = await plugin.createContent();
-            document.getElementById("plugin-content").innerHTML = "";
-            document.getElementById("plugin-content").appendChild(content);
+                btn.addEventListener("click", async () => {
+                    console.log(`Opening plugin: ${plugin.name}`);
+
+                    // Fetch plugin details dynamically
+                    const pluginResponse = await window.pluginAPI.loadPlugin(plugin.name);
+                    if (!pluginResponse.success) {
+                        document.getElementById("plugin-content").textContent = `Error: ${pluginResponse.error}`;
+                        return;
+                    }
+
+                    // Dynamically load the plugin script into the renderer process
+                    const script = document.createElement("script");
+                    script.src = `plugins/${plugin.name}.js`; // Ensure this path is correct
+                    script.onload = async () => {
+                        console.log(`Loaded plugin script for: ${plugin.name}`);
+
+                        if (window[plugin.name]) { // Plugin should be globally exposed
+                            const pluginInstance = window[plugin.name]();
+                            const content = await pluginInstance.createContent();
+                            document.getElementById("plugin-content").innerHTML = "";
+                            document.getElementById("plugin-content").appendChild(content);
+                        } else {
+                            document.getElementById("plugin-content").textContent = "Failed to initialize plugin.";
+                        }
+                    };
+                    script.onerror = () => {
+                        document.getElementById("plugin-content").textContent = "Failed to load plugin script.";
+                    };
+
+                    document.body.appendChild(script); // Inject script dynamically
+                });
+
+                sidebar.appendChild(btn);
+            });
+        }
+
+        // Listen for the main process to send the loaded plugins
+        window.pluginAPI.receive("plugins-loaded", (pluginList) => {
+            console.log("Plugins received from main process:", pluginList);
+            loadPlugins(pluginList);
         });
 
-        listContainer.appendChild(btn);
-    });
-}
-    // Load Plugins After Updating from GitHub
-    async function updateAndLoadPlugins() {
-      await window.pluginAPI.updatePlugins(); // Fetch latest plugins
-      await loadPlugins(); // Then display them
-    }
-
-    updateAndLoadPlugins();
-  </script>
+        // Initial plugin load
+        window.pluginAPI.getPlugins().then(loadPlugins);
+    </script>
 </body>
 </html>
